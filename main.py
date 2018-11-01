@@ -70,7 +70,7 @@ def echo(bot, update):
         end = datetime.fromtimestamp(times[update.message.chat_id])  # drop window end
         now = datetime.now()
 
-        logger.info('start: {start}, now: {now}, end: {end}')
+        logger.info(f'start: {start}, now: {now}, end: {end}')
         if start < now < end:
             if update.message.from_user.username:
                 add_to_next_round(update.message.from_user.username, update.message.chat.id, text,

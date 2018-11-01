@@ -8,13 +8,17 @@ INSTA_USERNAME = "ovleng4"
 INSTA_PASSWORD = "qwe228rty"
 
 # TIME
-ROUNDS_INTERVAL = 5 * 60 * 60  # interval between rounds, seconds
-DROP_WINDOW = 30 * 60  # drop window before each round_start, seconds
-ROUND_TIME = 1 * 60 * 60  # round_start time, seconds
+#ROUNDS_INTERVAL = 5 * 60 * 60  # interval between rounds, seconds
+ROUNDS_INTERVAL = 0.5 * 60 * 60  # interval between rounds, seconds
+#DROP_WINDOW = 30 * 60  # drop window before each round_start, seconds
+DROP_WINDOW = 2 * 60  # drop window before each round_start, seconds
+#ROUND_TIME = 1 * 60 * 60  # round_start time, seconds
+ROUND_TIME = 1 * 10 * 60  # round_start time, seconds
 
 # PATH
 CONFIG_NAME = 'config.py'  # this file's name
-FOLDER_PATH = '/home/Bot'  # this folder's full path
+#FOLDER_PATH = '/home/Bot'  # this folder's full path
+FOLDER_PATH = '/'  # this folder's full path
 
 # DATABASE SETTINGS
 DB_NAME = 'bot_base.db'  # full database's path
