@@ -333,7 +333,7 @@ def final_check(bot, job):
 
     pidorases = check_instagram(api, nicks)
     if not pidorases:
-        logging.info('All users had liked&commented each other')
+        logging.info('All users have liked&commented each other')
         bot.sendMessage(chatid, texts.ROUND_SUCCESS)
     else:
         lst = ['@' + x for x in get_bad_users(pidorases)]
@@ -344,6 +344,7 @@ def final_check(bot, job):
     check_for_pidority(goods, pidorases, chatid, bot)
     mark_as_pidorases(pidorases)
     bot.sendMessage(chatid, texts.ROUND_FINISHED)
+    get_next_round_time()
 
     end_and_plan_next([chatid, job_queue])
 
