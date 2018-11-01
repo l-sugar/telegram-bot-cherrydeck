@@ -20,7 +20,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 sleep_time = 0.25
-insta_user_pattern = re.compile(r'^https?\://www\.instagram\.com/[^/].*?/$')
+insta_user_pattern = re.compile(r'^(http)?s?(\://)?(www\.)?[iI]nstagram\.com/[^/].*?/?$')
 
 times = {}  # {group_tg_id: closest round_start start timestamp}
 
@@ -540,7 +540,8 @@ def get_next_round_time(bot, update):
     and {T_ROUND['FIELDS']['GROUP_ID']}={update.message.chat_id} order by id asc limit 1''')
     data = cursor.fetchone()
     if data:
-        t = datetime.fromtimestamp(data[0]).strftime('%H:%M:%S %Y-%m-%d ')
+        #t = datetime.fromtimestamp(data[0]).strftime('%H:%M:%S %Y-%m-%d ')
+        t = datetime.timedelta(datetime.fromtimestamp(data[0]) - datetime.now())
     else:
         t = 'NEVER'
     message = texts.NEXT_ROUND + str(t)
