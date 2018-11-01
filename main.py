@@ -527,7 +527,6 @@ def help(bot, update):
     bot.sendMessage(update.message.chat_id, texts.HELP)
     logger.info('Help message sent')
 
-
 @async1
 def get_next_round_time(bot, update):
     conn = sqlite3.connect(DB_NAME)
@@ -541,10 +540,10 @@ def get_next_round_time(bot, update):
     data = cursor.fetchone()
     if data:
         #t = datetime.fromtimestamp(data[0]).strftime('%H:%M:%S %Y-%m-%d ')
-        t = str(datetime.fromtimestamp(data[0]) - datetime.now())
+        t = datetime.fromtimestamp(data[0]) - datetime.now()
     else:
         t = 'NEVER'
-    message = texts.NEXT_ROUND + str(t)
+    message = texts.NEXT_ROUND + str(t).split(".")[0]
     bot.sendMessage(update.message.chat_id, message)
     logger.info(f'Round time sent: {t}')
 

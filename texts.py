@@ -1,5 +1,5 @@
 WELCOME = '''Hello!'''
-PERMISSION_ERROR = '''Sorry, you must be am admin to do this.'''
+PERMISSION_ERROR = '''Sorry, you must be an admin to do this.'''
 SETUP_MISSING_TIME = '''You must provide the start time for next round_start. Example: 20:00'''
 BAD_TIME_FORMAT = '''Please provide a valid time at least 0.5 hours in the future. Example: 20:00'''
 NO_NEED_TO_SETUP = '''This group was already set up'''
