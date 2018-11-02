@@ -59,6 +59,7 @@ def echo(bot, update):
         else:
             bot.delete_message(chat_id=update.message.chat.id, message_id=update.message.message_id)
             logger.info('Message has been deleted: {}'.format(text))
+            bot.sendMessage(update.message.chat.id, texts.MESSAGE_DELETED + CHAT_GROUP)
     else:
         if update.message.chat_id not in times:
             added = add_to_times(update.message.chat_id)  # adds next round_start start time to the dict
