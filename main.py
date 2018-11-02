@@ -59,7 +59,7 @@ def echo(bot, update):
         else:
             bot.delete_message(chat_id=update.message.chat.id, message_id=update.message.message_id)
             logger.info('Message has been deleted: {}'.format(text))
-            bot.sendMessage(update.message.chat.id, texts.MESSAGE_DELETED + CHAT_GROUP)
+            bot.sendMessage(update.message.chat.id, texts.MESSAGE_DELETED + CHAT_GROUP, disable_web_page_preview=True)
     else:
         if update.message.chat_id not in times:
             added = add_to_times(update.message.chat_id)  # adds next round_start start time to the dict
@@ -297,7 +297,7 @@ def new_group_setup(bot, update, args, job_queue):
 
 def drop_window(bot, job):
     logger.warning('Drop window started')
-    bot.sendMessage(job.context, texts.GIMME_UR_LINKS)
+    bot.sendMessage(job.context, texts.GIMME_UR_LINKS, disable_web_page_preview=True)
     logger.info(f'Drop window started: {job.context}')
 
 
@@ -421,13 +421,20 @@ def end_and_plan_next(cont):
     conn = sqlite3.connect(DB_NAME)
     conn.set_trace_callback(print)
     cursor = conn.cursor()
+    dt_now = datetime.now().timestamp()
+
+
+    previous_start_time = f'''SELECT {T_ROUND['FIELDS']['STARTS_AT']} from {T_ROUND['NAME']} WHERE {T_ROUND['FIELDS']['GROUP_ID']}=? \
+    AND {T_ROUND['FIELDS']['IS_FINISHED']}=1 and {T_ROUND['FIELDS']['STARTS_AT']}<{dt_now} ORDER BY id DESC LIMIT 1'''
+    cursor.execute(previous_start_time, (chatid,))
+    previous_start_time = cursor.fetchall()
 
     cursor.execute(f'''update {T_ROUND['NAME']} set {T_ROUND['FIELDS']['IS_FINISHED']}=1 where \
     {T_ROUND['FIELDS']['IS_FINISHED']}=0 and {T_ROUND['FIELDS']['STARTS_AT']}={times[chatid]}''')
     conn.commit()
     logger.info('Round has ended')
 
-    next_start_time = (datetime.now() + timedelta(seconds=ROUNDS_INTERVAL)).timestamp()
+    next_start_time = (previous_start_time + timedelta(seconds=ROUNDS_INTERVAL)).timestamp()                                                             #IMPORTANT
 
     query = f'''INSERT INTO {T_ROUND['NAME']} ({T_ROUND['FIELDS']['STARTS_AT']}, \
     {T_ROUND['FIELDS']['GROUP_ID']}) VALUES (?, ?)'''
