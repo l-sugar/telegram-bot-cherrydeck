@@ -344,7 +344,7 @@ def final_check(bot, job):
     check_for_pidority(goods, pidorases, chatid, bot)
     mark_as_pidorases(pidorases)
     bot.sendMessage(chatid, texts.ROUND_FINISHED)
-    get_next_round_time(bot, update)
+    get_next_round_time(bot)
 
     end_and_plan_next([chatid, job_queue])
 
