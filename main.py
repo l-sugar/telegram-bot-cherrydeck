@@ -422,6 +422,7 @@ def end_and_plan_next(cont):
     conn.set_trace_callback(print)
     cursor = conn.cursor()
 
+
     cursor.execute(f'''update {T_ROUND['NAME']} set {T_ROUND['FIELDS']['IS_FINISHED']}=1 where \
     {T_ROUND['FIELDS']['IS_FINISHED']}=0 and {T_ROUND['FIELDS']['STARTS_AT']}={times[chatid]}''')
     conn.commit()
@@ -535,7 +536,7 @@ def get_next_round_time(bot, update):
     conn.set_trace_callback(print)
     cursor = conn.cursor()
 
-    dt_finish = (datetime.now() + timedelta(seconds=ROUND_TIME)).timestamp()
+    dt_finish = datetime.now() # + timedelta(seconds=ROUND_TIME)).timestamp()
     cursor.execute(f'''select {T_ROUND['FIELDS']['STARTS_AT']} from {T_ROUND['NAME']} \
     where {T_ROUND['FIELDS']['STARTS_AT']} > {dt_finish} \
     and {T_ROUND['FIELDS']['GROUP_ID']}={update.message.chat_id} order by id asc limit 1''')
