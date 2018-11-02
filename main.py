@@ -421,20 +421,13 @@ def end_and_plan_next(cont):
     conn = sqlite3.connect(DB_NAME)
     conn.set_trace_callback(print)
     cursor = conn.cursor()
-    dt_now = datetime.now().timestamp()
-
-
-    previous_start_time = f'''SELECT {T_ROUND['FIELDS']['STARTS_AT']} from {T_ROUND['NAME']} WHERE {T_ROUND['FIELDS']['GROUP_ID']}=? \
-    AND {T_ROUND['FIELDS']['IS_FINISHED']}=1 and {T_ROUND['FIELDS']['STARTS_AT']}<{dt_now} ORDER BY id DESC LIMIT 1'''
-    cursor.execute(previous_start_time, (chatid,))
-    previous_start_time = cursor.fetchall()
 
     cursor.execute(f'''update {T_ROUND['NAME']} set {T_ROUND['FIELDS']['IS_FINISHED']}=1 where \
     {T_ROUND['FIELDS']['IS_FINISHED']}=0 and {T_ROUND['FIELDS']['STARTS_AT']}={times[chatid]}''')
     conn.commit()
     logger.info('Round has ended')
 
-    next_start_time = (previous_start_time + timedelta(seconds=ROUNDS_INTERVAL)).timestamp()                                                             #IMPORTANT
+    next_start_time = (datetime.now() + timedelta(seconds=ROUNDS_INTERVAL)).timestamp()
 
     query = f'''INSERT INTO {T_ROUND['NAME']} ({T_ROUND['FIELDS']['STARTS_AT']}, \
     {T_ROUND['FIELDS']['GROUP_ID']}) VALUES (?, ?)'''
