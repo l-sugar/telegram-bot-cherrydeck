@@ -358,10 +358,11 @@ def check_for_pidority(g, p, chatid, bot):
         cursor.execute(f'''select {T_USER['FIELDS']['USER_ID']} from {T_USER['NAME']} \
         where {T_USER['FIELDS']['IS_P']}=1 and {T_USER['FIELDS']['INSTA_LINK']} like ?''', (f'%{i}%',))
         data = cursor.fetchone()
-        if data:
-            print(f'check_for_pidority', data[0])
             ban(bot, data[0], chatid)
-            bot.sendMessage(chatid, str(data[0]) + texts.BANNED)
+        cursor.execute(f'''select {T_USER['FIELDS']['TG_NAME']} from {T_USER['NAME']} \
+        where {T_USER['FIELDS']['USER_ID']}=?''', data[0])
+        tg_name = cursor.fetchone()
+            bot.sendMessage(chatid, tg_name + texts.BANNED)
 
     increment_good_counter(g)
 
