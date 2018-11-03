@@ -16,9 +16,9 @@ INSTA_PASSWORD = "qwe228rty"
 #ROUND_TIME = 1 * 60 * 60  # round_start time, seconds
 
 # TESTING TIMES
-ROUNDS_INTERVAL = 1 * 2 * 60  # interval between rounds, seconds TESTING
+ROUNDS_INTERVAL = 1 * 1 * 60  # interval between rounds, seconds TESTING
 DROP_WINDOW = 1 * 60  # drop window before each round_start, seconds TESTING
-ROUND_TIME = 1 * 2 * 60  # round_start time, seconds TESTING
+ROUND_TIME = 1 * 0.1 * 60  # round_start time, seconds TESTING
 
 #BAD_USER_BAN_TIME = 360 * 60 * 60 # user ban time after bad behavior
 BAD_USER_BAN_TIME = 1 * 4 * 60 # user ban time after bad behavior TESTING
