@@ -18,6 +18,6 @@ LINK_ADDED = '''Link has been added to queue'''
 BAD_CONDITIONS = '''15 MINUTES LEFT TO LIKE & COMMENT
 USER WHO HAVE NOT COMPLETED YET\n'''
 ROUND_FINISHED = '''Round finished.'''
-BANNED = '''User did not follow the rules and has been banned.'''
+BANNED = ''' did not follow the rules and has been banned.'''
 BAD_USERS = '''These users did not follow the rules: \n'''
 MESSAGE_DELETED = '''I deleted a message that did not fit the format for the drop.\nFor questions please utilise the chat group: \n'''

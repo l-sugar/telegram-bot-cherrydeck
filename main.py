@@ -361,6 +361,7 @@ def check_for_pidority(g, p, chatid, bot):
         if data:
             print(f'check_for_pidority', data[0])
             ban(bot, data[0], chatid)
+            bot.sendMessage(chatid, data[0] + texts.BANNED)
 
     increment_good_counter(g)
 
