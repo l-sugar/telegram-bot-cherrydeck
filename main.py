@@ -378,8 +378,8 @@ def mark_as_pidorases(lst):
 
 @async1
 def ban(bot, userid, chatid):
-    bot.kick_chat_member(chatid, userid)
-    logger.warning(f'{userid} id has been banned')
+    bot.kick_chat_member(chatid, userid, until_date = (datetime.now() + timedelta(seconds=BAD_USER_BAN_TIME)).timestamp())
+    logger.warning(f'{userid} id has been banned for 15 days')
 
 
 def increment_good_counter(whom):
@@ -536,9 +536,9 @@ def get_next_round_time(bot, update):
     conn.set_trace_callback(print)
     cursor = conn.cursor()
 
-    dt_finish = datetime.now().timestamp() # + timedelta(seconds=ROUND_TIME)).timestamp()
+    dt_now = datetime.now().timestamp() # + timedelta(seconds=ROUND_TIME)).timestamp()
     cursor.execute(f'''select {T_ROUND['FIELDS']['STARTS_AT']} from {T_ROUND['NAME']} \
-    where {T_ROUND['FIELDS']['STARTS_AT']} > {dt_finish} \
+    where {T_ROUND['FIELDS']['STARTS_AT']} > {dt_now} \
     and {T_ROUND['FIELDS']['GROUP_ID']}={update.message.chat_id} order by id asc limit 1''')
     data = cursor.fetchone()
     if data:
