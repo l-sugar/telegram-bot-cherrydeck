@@ -378,8 +378,8 @@ def mark_as_pidorases(lst):
 
 @async1
 def ban(bot, userid, chatid):
-    bot.kick_chat_member(chatid, userid, until_date = (datetime.now() + timedelta(seconds=BAD_USER_BAN_TIME)).timestamp())
-    logger.warning(f'{userid} id has been banned for 15 days')
+    bot.restrict_chat_member(chatid, userid, until_date = (datetime.now() + timedelta(seconds=BAD_USER_BAN_TIME)).timestamp(), can_send_messages = False)
+    logger.warning(f'{userid} id has been restricted from posting for 15 days')
 
 
 def increment_good_counter(whom):

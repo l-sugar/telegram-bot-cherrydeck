@@ -21,7 +21,7 @@ DROP_WINDOW = 1 * 60  # drop window before each round_start, seconds TESTING
 ROUND_TIME = 1 * 2 * 60  # round_start time, seconds TESTING
 
 #BAD_USER_BAN_TIME = 360 * 60 * 60 # user ban time after bad behavior
-BAD_USER_BAN_TIME = 1 * 1 * 60 # user ban time after bad behavior TESTING
+BAD_USER_BAN_TIME = 1 * 4 * 60 # user ban time after bad behavior TESTING
 
 # PATH
 CONFIG_NAME = 'config.py'  # this file's name
