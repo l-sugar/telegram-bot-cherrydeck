@@ -383,7 +383,7 @@ def ban(bot, userid, chatid):
     cursor = conn.cursor()
 
     cursor.execute (f'''select {T_USER['FIELDS']['TG_NAME']} from {T_USER['NAME']} \
-    where {T_USER['FIELDS']['USER_ID']} = ?''', userid) # need to figure out which var to pass here
+    where {T_USER['FIELDS']['USER_ID']} = ?''', (userid)) # need to figure out which var to pass here
     tg_name = cursor.fetchone()
 
     bot.restrict_chat_member(chatid, userid, until_date = (datetime.now() + timedelta(seconds=BAD_USER_BAN_TIME)).timestamp(), can_send_messages = False)
