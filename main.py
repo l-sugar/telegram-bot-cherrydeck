@@ -358,13 +358,9 @@ def check_for_pidority(g, p, chatid, bot):
         cursor.execute(f'''select {T_USER['FIELDS']['USER_ID']} from {T_USER['NAME']} \
         where {T_USER['FIELDS']['IS_P']}=1 and {T_USER['FIELDS']['INSTA_LINK']} like ?''', (f'%{i}%',))
         data = cursor.fetchone()
-        cursor.execute(f'''select {T_USER['FIELDS']['TG_NAME']} from {T_USER['NAME']} \
-        where {T_USER['FIELDS']['IS_P']}=1 and {T_USER['FIELDS']['INSTA_LINK']} like ?''', (f'%{i}%',)) # need to figure out which var to pass here 
-        tg_name = cursor.fetchone()
         if data:
             print(f'check_for_pidority', data[0])
             ban(bot, data[0], chatid)
-            bot.sendMessage(chatid, tg_name + texts.BANNED)
 
     increment_good_counter(g)
 
@@ -382,9 +378,17 @@ def mark_as_pidorases(lst):
 
 @async1
 def ban(bot, userid, chatid):
+    conn = sqlite3.connect(DB_NAME)
+    conn.set_trace_callback(print)
+    cursor = conn.cursor()
+
+    cursor.execute(f'''select {T_USER['FIELDS']['TG_NAME']} from {T_USER['NAME']} \
+    where {T_USER['FIELDS']['USER_ID']} = ?''', (userid,)) # need to figure out which var to pass here
+    tg_name = cursor.fetchone()
+
     bot.restrict_chat_member(chatid, userid, until_date = (datetime.now() + timedelta(seconds=BAD_USER_BAN_TIME)).timestamp(), can_send_messages = False)
     logger.warning(f'{userid} id has been restricted from posting for 15 days')
-
+    bot.sendMessage(chatid, tg_name + texts.BANNED)
 
 def increment_good_counter(whom):
     conn = sqlite3.connect(DB_NAME)
