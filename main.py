@@ -2,11 +2,11 @@
 import logging
 import re
 import sqlite3
-import emoji
 
 from datetime import datetime, timedelta
 from threading import Thread
 from time import sleep
+from emoji import emojize
 
 from InstagramAPI import InstagramAPI
 from telegram.ext import CommandHandler, MessageHandler, Updater, Filters
@@ -235,7 +235,7 @@ def new_user_welcome(bot, update):
         bot.restrict_chat_member(chat_id=update.message.chat.id, user_id=i.id, can_send_messages=True,
                                  can_add_web_page_previews=False)
         logger.info('User {} has been restricted from send web page previews'.format(i.id))
-        bot.sendMessage(update.message.chat.id, 'Hi @' + str(i.username) + emoji.emojize(texts.WELCOME), disable_web_page_preview=True)
+        bot.sendMessage(update.message.chat.id, 'Hi @' + str(i.username) + emojize(texts.WELCOME), disable_web_page_preview=True)
         logger.info('Welcome message sent')
 
 
