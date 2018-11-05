@@ -234,7 +234,7 @@ def new_user_welcome(bot, update):
         bot.restrict_chat_member(chat_id=update.message.chat.id, user_id=i.id, can_send_messages=True,
                                  can_add_web_page_previews=False)
         logger.info('User {} has been restricted from send web page previews'.format(i.id))
-        bot.sendMessage(update.message.chat.id, 'Hi ' + i.username + texts.WELCOME, disable_web_page_preview=True)
+        bot.sendMessage(update.message.chat.id, 'Hi ' + str(i.username) + texts.WELCOME, disable_web_page_preview=True)
         logger.info('Welcome message sent')
 
 
