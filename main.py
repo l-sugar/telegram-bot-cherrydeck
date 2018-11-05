@@ -2,6 +2,7 @@
 import logging
 import re
 import sqlite3
+import emoji
 from datetime import datetime, timedelta
 from threading import Thread
 from time import sleep
@@ -229,13 +230,12 @@ def check(res, users):
 
 
 def new_user_welcome(bot, update):
-    bot.sendMessage(update.message.chat.id, texts.WELCOME, disable_web_page_preview=True)
-    logger.info('Welcome message sent')
-
     for i in update.message.new_chat_members:
         bot.restrict_chat_member(chat_id=update.message.chat.id, user_id=i.id, can_send_messages=True,
                                  can_add_web_page_previews=False)
         logger.info('User {} has been restricted from send web page previews'.format(i.id))
+        bot.sendMessage(update.message.chat.id, 'Hi ' + username + texts.WELCOME, disable_web_page_preview=True)
+        logger.info('Welcome message sent')
 
 
 def is_admin(bot, userid, chatid):
