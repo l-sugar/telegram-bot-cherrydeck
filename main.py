@@ -2,11 +2,11 @@
 import logging
 import re
 import sqlite3
+import emoji
 
 from datetime import datetime, timedelta
 from threading import Thread
 from time import sleep
-from emoji import *
 
 from InstagramAPI import InstagramAPI
 from telegram.ext import CommandHandler, MessageHandler, Updater, Filters
