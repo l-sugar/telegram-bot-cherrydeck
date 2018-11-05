@@ -382,13 +382,13 @@ def ban(bot, userid, chatid):
     conn.set_trace_callback(print)
     cursor = conn.cursor()
 
-    cursor.execute(f'''select {T_USER['FIELDS']['TG_NAME']} from {T_USER['NAME']} \
-    where {T_USER['FIELDS']['USER_ID']} = ?''', (userid,)) # need to figure out which var to pass here
+    cursor.execute (f'''select {T_USER['FIELDS']['TG_NAME']} from {T_USER['NAME']} \
+    where {T_USER['FIELDS']['USER_ID']} = ?''', userid) # need to figure out which var to pass here
     tg_name = cursor.fetchone()
 
     bot.restrict_chat_member(chatid, userid, until_date = (datetime.now() + timedelta(seconds=BAD_USER_BAN_TIME)).timestamp(), can_send_messages = False)
     logger.warning(f'{userid} id has been restricted from posting for 15 days')
-    bot.sendMessage(chatid, str(tg_name) + texts.BANNED)
+    bot.sendMessage(chatid, '@' + str(tg_name) + texts.BANNED)
 
 def increment_good_counter(whom):
     conn = sqlite3.connect(DB_NAME)
