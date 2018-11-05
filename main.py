@@ -359,7 +359,7 @@ def check_for_pidority(g, p, chatid, bot):
         where {T_USER['FIELDS']['IS_P']}=1 and {T_USER['FIELDS']['INSTA_LINK']} like ?''', (f'%{i}%',))
         data = cursor.fetchone()
         cursor.execute(f'''select {T_USER['FIELDS']['TG_NAME']} from {T_USER['NAME']} \
-        where {T_USER['FIELDS']['USER_ID']} like ?''', (str(data[0]),)) # need to figure out which var to pass here 
+        where {T_USER['FIELDS']['INSTA_LINK']} like ?''', (f'%{i}%',)) # need to figure out which var to pass here 
         tg_name = cursor.fetchone()
         if data:
             print(f'check_for_pidority', data[0])
