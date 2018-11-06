@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from dotenv import load_dotenv
 load_dotenv()
+import os
 
 # CREDENTIALS
 TOKEN = os.getenv("TG_TOKEN")  # restart the main script MANUALLY after this field is changed
