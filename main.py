@@ -6,6 +6,7 @@ import sqlite3
 from datetime import datetime, timedelta
 from threading import Thread
 from time import sleep
+from dotenv import load_dotenv
 # from emoji import emojize
 
 from InstagramAPI import InstagramAPI
@@ -13,6 +14,8 @@ from telegram.ext import CommandHandler, MessageHandler, Updater, Filters
 
 import texts
 from config import *
+
+load_dotenv()
 
 # TODO если надо будет обновлять конфиг в лайве
 # import importlib

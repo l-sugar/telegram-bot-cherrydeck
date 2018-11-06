@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
+from dotenv import load_dotenv
+load_dotenv()
+
 # CREDENTIALS
-TOKEN = '''628211598:AAEBr27Wc0N7ug9Kg4Ntis6c8zV8863UKQI'''  # restart the main script MANUALLY after this field is changed
-ADMIN_PASSWORD = '3c1n850b4e2e920716386213456e1g0i'  # to use special bot commands
+TOKEN = os.getenv("TG_TOKEN")  # restart the main script MANUALLY after this field is changed
+ADMIN_PASSWORD = os.getenv("ADMIN_PW")  # to use special bot commands
 
 # GROUPS
-CHAT_GROUP = '''https://t.me/joinchat/Iu1qVhHhmGdlGRf2f7lrug'''
+CHAT_GROUP = os.getenv("TG_CHAT")
 
 # INSTA_CREDENTIALS
-INSTA_USERNAME = "ovleng4"
-INSTA_PASSWORD = "qwe228rty"
+INSTA_USERNAME = os.getenv("INSTA_HANDLE")
+INSTA_PASSWORD = os.getenv("INSTA_PW")
 
 # TIMES
 #ROUNDS_INTERVAL = 5 * 60 * 60  # interval between rounds, seconds
