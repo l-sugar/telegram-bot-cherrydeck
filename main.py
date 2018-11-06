@@ -2,7 +2,6 @@
 import logging
 import re
 import sqlite3
-import os
 
 from datetime import datetime, timedelta
 from threading import Thread
@@ -14,8 +13,6 @@ from telegram.ext import CommandHandler, MessageHandler, Updater, Filters
 
 import texts
 from config import *
-
-load_dotenv()
 
 # TODO если надо будет обновлять конфиг в лайве
 # import importlib

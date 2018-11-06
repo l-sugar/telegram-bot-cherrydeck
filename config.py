@@ -1,15 +1,19 @@
 # -*- coding: utf-8 -*-
+from dotenv import load_dotenv
+load_dotenv()
+
+import os
 
 # CREDENTIALS
-TOKEN = process.env.TG_TOKEN  # restart the main script MANUALLY after this field is changed
-ADMIN_PASSWORD = process.env.ADMIN_PW  # to use special bot commands
+TOKEN = os.getenv("TG_TOKEN")  # restart the main script MANUALLY after this field is changed
+ADMIN_PASSWORD = os.getenv("ADMIN_PW")  # to use special bot commands
 
 # GROUPS
-CHAT_GROUP = process.env.TG_CHAT
+CHAT_GROUP = os.getenv("TG_CHAT")
 
 # INSTA_CREDENTIALS
-INSTA_USERNAME = process.env.INSTA_HANDLE
-INSTA_PASSWORD = process.env.INSTA_PW
+INSTA_USERNAME = os.getenv("INSTA_HANDLE")
+INSTA_PASSWORD = os.getenv("INSTA_PW")
 
 # TIMES
 #ROUNDS_INTERVAL = 5 * 60 * 60  # interval between rounds, seconds
