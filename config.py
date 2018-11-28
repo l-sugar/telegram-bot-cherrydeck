@@ -2,18 +2,18 @@
 import os
 
 # CREDENTIALS
-TOKEN = os.environ('TG_TOKEN')  # restart the main script MANUALLY after this field is changed
-ADMIN_PASSWORD = os.environ('ADMIN_PW')  # to use special bot commands
+TOKEN = os.environ.get('TG_TOKEN')  # restart the main script MANUALLY after this field is changed
+ADMIN_PASSWORD = os.environ.get('ADMIN_PW')  # to use special bot commands
 
 # GROUPS
-CHAT_GROUP = os.environ('TG_CHAT_GROUP')
+CHAT_GROUP = os.environ.get('TG_CHAT_GROUP')
 
 # INSTA_CREDENTIALS
-INSTA_USERNAME = os.environ('INSTA_USER')
-INSTA_PASSWORD = os.environ('INSTA_PW')
+INSTA_USERNAME = os.environ.get('INSTA_USER')
+INSTA_PASSWORD = os.environ.get('INSTA_PW')
 
 # DATABASE_URL
-DATABASE_URL = os.environ('DATABASE_URL')
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
 # TIMES
 # ROUNDS_INTERVAL = 23 * 60 * 60  # interval between rounds, seconds
