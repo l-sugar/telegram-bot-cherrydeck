@@ -2,6 +2,7 @@
 import logging
 import re
 import sqlite3
+import psycopg2
 
 from datetime import datetime, timedelta
 from threading import Thread
@@ -105,8 +106,7 @@ def usernames_from_links(arr):
 
 # @async1
 def add_to_next_round(tg_name, chatid, insta_link, userid, fullname):
-    conn = sqlite3.connect(DB_NAME)
-    conn.set_trace_callback(print)
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
     cursor.execute(f'''SELECT * from {T_USER['NAME']} where {T_USER['FIELDS']['USER_ID']}=?''', (userid,))
     data = cursor.fetchall()
@@ -138,18 +138,19 @@ def add_to_next_round(tg_name, chatid, insta_link, userid, fullname):
         cursor.execute(query, (userid, chatid))  # creates new round_start
         conn.commit()
         logger.info('Record added')
+    conn.close()
 
 
 def get_next_start_time(chatid):
     dt_now = datetime.now().timestamp()
 
-    conn = sqlite3.connect(DB_NAME)
-    conn.set_trace_callback(print)
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
     query = f'''SELECT {T_ROUND['FIELDS']['STARTS_AT']} from {T_ROUND['NAME']} WHERE {T_ROUND['FIELDS']['GROUP_ID']}=? \
     AND {T_ROUND['FIELDS']['IS_FINISHED']}=0 and {T_ROUND['FIELDS']['STARTS_AT']}>{dt_now} ORDER BY id ASC LIMIT 1'''
     cursor.execute(query, (chatid,))
     data = cursor.fetchall()
+    conn.close()
     if data:
         return data[0][0]
     return None
@@ -249,8 +250,7 @@ def is_admin(bot, userid, chatid):
 
 # @async1
 def new_group_setup(bot, update, args, job_queue):
-    conn = sqlite3.connect(DB_NAME)
-    conn.set_trace_callback(print)
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
 
     cursor.execute(f'''select * from {T_ROUND['NAME']} \
@@ -291,13 +291,13 @@ def new_group_setup(bot, update, args, job_queue):
         else:
             next_round_starts = dt.timestamp()
 
-            conn = sqlite3.connect(DB_NAME)
+            conn = psycopg2.connect(DATABASE_URL, sslmode='require')
             cursor = conn.cursor()
-            conn.set_trace_callback(print)
+
             dt_now = datetime.now().timestamp()
             cursor.execute(f'''select * from {T_ROUND['NAME']} where {T_ROUND['FIELDS']['STARTS_AT']}>{dt_now} \
             and {T_ROUND['FIELDS']['GROUP_ID']}={update.message.chat_id}''')
-            data = cursor.fetchall()  # если для этой группы уже есть раунд в будущем, то новый не добавится
+            data = cursor.fetchall()
             if not data:
                 query = f'''INSERT INTO {T_ROUND['NAME']} ({T_ROUND['FIELDS']['STARTS_AT']}, \
                 {T_ROUND['FIELDS']['GROUP_ID']}) VALUES (?, ?)'''
@@ -313,10 +313,10 @@ def new_group_setup(bot, update, args, job_queue):
             else:
                 bot.sendMessage(update.message.chat.id, texts.ROUND_ALREADY_SET)
                 logger.info("There's a round for this group in the future")
+            conn.close()
 
 def drop_window(bot, job):
-    conn = sqlite3.connect(DB_NAME)
-    conn.set_trace_callback(print)
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
 
     dt_now = datetime.now().timestamp()
@@ -326,6 +326,7 @@ def drop_window(bot, job):
     cursor.execute(f'''update {T_ROUND['NAME']} set {T_ROUND['FIELDS']['IN_PROGRESS']}=1 \
     where {T_ROUND['FIELDS']['STARTS_AT']} > {dt_now} and {T_ROUND['FIELDS']['GROUP_ID']} = {job.context[0]} order by id ASC limit 1''')
     conn.commit()
+    conn.close()
 
     logger.warning('Drop window started')
     bot.sendMessage(chatid, texts.GIMME_UR_LINKS, disable_web_page_preview=True)
@@ -403,8 +404,7 @@ def announce_round_finish(bot, chatid):
 
 
 def check_for_pidority(g, p, chatid, bot):
-    conn = sqlite3.connect(DB_NAME)
-    conn.set_trace_callback(print)
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
     for i in p:
         cursor.execute(f'''select {T_USER['FIELDS']['USER_ID']} from {T_USER['NAME']} \
@@ -416,38 +416,37 @@ def check_for_pidority(g, p, chatid, bot):
                 logger.warning('Cannot restrict admin')
             else:
                 ban(bot, data[0], chatid)
-
+    conn.close()
     increment_good_counter(g)
 
 
 def mark_as_pidorases(lst):
-    conn = sqlite3.connect(DB_NAME)
-    conn.set_trace_callback(print)
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
     for i in lst:
         cursor.execute(f'''update {T_USER['NAME']} set {T_USER['FIELDS']['IS_P']}=1
          where {T_USER['FIELDS']['INSTA_LINK']} like ?''', (f'%{i}%',))
         logger.warning(f'{i} marked as a bad one')
     conn.commit()
+    conn.close()
 
 
 @async1
 def ban(bot, userid, chatid):
-    conn = sqlite3.connect(DB_NAME)
-    conn.set_trace_callback(print)
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
 
     cursor.execute (f'''select {T_USER['FIELDS']['FULL_NAME']} from {T_USER['NAME']} \
     where {T_USER['FIELDS']['USER_ID']} = ?''', (userid,))
     user_name = cursor.fetchone()
+    conn.close()
 
     bot.restrict_chat_member(chatid, userid, until_date = (datetime.now() + timedelta(seconds=BAD_USER_BAN_TIME)).timestamp(), can_send_messages = False)
     logger.warning(f'{userid} id has been restricted from posting for 15 days')
     bot.sendMessage(chatid, ''.join(user_name) + texts.BANNED)
 
 def increment_good_counter(whom):
-    conn = sqlite3.connect(DB_NAME)
-    conn.set_trace_callback(print)
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
 
     for i in whom:
@@ -462,12 +461,12 @@ def increment_good_counter(whom):
     cursor.execute(
         f'''update {T_USER['NAME']} set {T_USER['FIELDS']['BAN_WARNS']}=0  where {T_USER['FIELDS']['IS_P']}=0''')
     conn.commit()
+    conn.close()
 
 
 def get_bad_users(usrs):
     res = list()
-    conn = sqlite3.connect(DB_NAME)
-    conn.set_trace_callback(print)
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
     for i in usrs:
         cursor.execute(f'''select distinct {T_USER['FIELDS']['FULL_NAME']} from {T_USER['NAME']} \
@@ -475,14 +474,14 @@ def get_bad_users(usrs):
         data = cursor.fetchone()
         if data:
             res.append(data[0])
+    conn.close()
     return res
 
 
 def end_and_plan_next(bot, cont):
     chatid = cont[0]
     job_queue = cont[1]
-    conn = sqlite3.connect(DB_NAME)
-    conn.set_trace_callback(print)
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
 
 
@@ -507,6 +506,7 @@ def end_and_plan_next(bot, cont):
     {T_ROUND['FIELDS']['GROUP_ID']}) VALUES (?, ?)'''
     cursor.execute(query, (next_start_time, chatid))  # creates new round_start
     conn.commit()
+    conn.close()
 
     logger.info(f'New round set to {datetime.fromtimestamp(next_start_time)}')
     plan_all_round_jobs(job_queue)
@@ -552,20 +552,19 @@ def round_start(bot, job):
 
 
 def get_round_links(time):
-    conn = sqlite3.connect(DB_NAME)
-    conn.set_trace_callback(print)
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
     cursor.execute(f'''select {T_USER['FIELDS']['INSTA_LINK']} from {T_USER['NAME']} \
     where id in (select {T_U_R['FIELDS']['USER_ID']} from {T_U_R['NAME']} where {T_U_R['FIELDS']['ROUND_ID']}=(select id from {T_ROUND['NAME']} \
     where {T_ROUND['FIELDS']['STARTS_AT']}={time}))''')
     data = cursor.fetchall()
+    conn.close()
     return data
 
 
 # @async1
 def plan_all_round_jobs(job_queue):
-    conn = sqlite3.connect(DB_NAME)
-    conn.set_trace_callback(print)
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
 
     dt_now = datetime.now().timestamp()
@@ -574,6 +573,7 @@ def plan_all_round_jobs(job_queue):
         f'''select distinct {T_ROUND['FIELDS']['GROUP_ID']} from {T_ROUND['NAME']} \
         WHERE {T_ROUND['FIELDS']['IS_FINISHED']}=0 and {T_ROUND['FIELDS']['STARTS_AT']}>{dt_now}''')
     data = cursor.fetchall()
+    conn.close()
     for group in data:
         # print(group[0])
         t = get_next_start_time(group[0])
@@ -600,14 +600,14 @@ def plan_all_round_jobs(job_queue):
 
 
 def finish_past_rounds():
-    conn = sqlite3.connect(DB_NAME)
-    conn.set_trace_callback(print)
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
 
     dt_finish = (datetime.now() - timedelta(seconds=ROUND_TIME)).timestamp()
     cursor.execute(f'''update {T_ROUND['NAME']} set {T_ROUND['FIELDS']['IS_FINISHED']}=1 where \
     {T_ROUND['FIELDS']['IS_FINISHED']}=0 and {T_ROUND['FIELDS']['STARTS_AT']}<{dt_finish}''')
     conn.commit()
+    conn.close()
     logger.info('Past rounds finished')
 
 
@@ -618,8 +618,7 @@ def help(bot, update):
 
 @async1
 def get_next_round_time(bot, update):
-    conn = sqlite3.connect(DB_NAME)
-    conn.set_trace_callback(print)
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
 
     cursor.execute(f'''select {T_ROUND['FIELDS']['STARTS_AT']} from {T_ROUND['NAME']} \
@@ -639,6 +638,7 @@ def get_next_round_time(bot, update):
             t = datetime.fromtimestamp(data[0]) - timedelta(seconds=DROP_WINDOW) - datetime.now()
         else:
             t = 'NEVER'
+    conn.close()
     message = texts.NEXT_ROUND + str(t).split(".")[0]
     bot.sendMessage(update.message.chat_id, message)
     logger.info(f'Round time sent: {t}')
