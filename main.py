@@ -133,7 +133,7 @@ def add_to_next_round(tg_name, chatid, insta_link, userid, fullname):
     data = cursor.fetchall()
     if not data:  # если пользователь не связан с раундом
         query = f'''INSERT INTO {T_U_R['NAME']} VALUES ((select id from {T_USER['NAME']} \
-        where {T_USER['FIELDS']['USER_ID']}=%s order by id asc limit 1), \
+        where {T_USER['FIELDS']['USER_ID']}=%s ORDER BY id asc limit 1), \
         (SELECT id from {T_ROUND['NAME']} WHERE {T_ROUND['FIELDS']['GROUP_ID']}=%s \
         AND {T_ROUND['FIELDS']['IS_FINISHED']}=False ORDER BY id ASC LIMIT 1))'''
         cursor.execute(query, (userid, chatid))  # creates new round_start
@@ -324,8 +324,9 @@ def drop_window(bot, job):
     chatid = job.context[0]
     job_queue = job.context[1]
 
-    cursor.execute(f'''update {T_ROUND['NAME']} set {T_ROUND['FIELDS']['IN_PROGRESS']}=True \
-    where {T_ROUND['FIELDS']['STARTS_AT']} > {dt_now} and {T_ROUND['FIELDS']['GROUP_ID']} = {job.context[0]} order by id ASC limit 1''')
+    cursor.execute(f'''update {T_ROUND['NAME']} SET {T_ROUND['FIELDS']['IN_PROGRESS']}=True \
+    WHERE id IN (SELECT id FROM {T_ROUND['NAME']} WHERE {T_ROUND['FIELDS']['STARTS_AT']} > {dt_now} \
+    AND {T_ROUND['FIELDS']['GROUP_ID']} = {job.context[0]} ORDER BY id ASC LIMIT 1)''')
     conn.commit()
     conn.close()
 
@@ -486,11 +487,9 @@ def end_and_plan_next(bot, cont):
     cursor = conn.cursor()
 
 
-    cursor.execute(f'''update {T_ROUND['NAME']} set {T_ROUND['FIELDS']['IS_FINISHED']}=True where \
+    cursor.execute(f'''update {T_ROUND['NAME']} \
+    set {T_ROUND['FIELDS']['IS_FINISHED']}=True, {T_ROUND['FIELDS']['IN_PROGRESS']}=False where \
     {T_ROUND['FIELDS']['IS_FINISHED']}=False and {T_ROUND['FIELDS']['STARTS_AT']}={times[chatid]}''')
-    conn.commit()
-    cursor.execute(f'''update {T_ROUND['NAME']} set {T_ROUND['FIELDS']['IN_PROGRESS']}=False where \
-    {T_ROUND['FIELDS']['IS_FINISHED']}=True and {T_ROUND['FIELDS']['STARTS_AT']}={times[chatid]}''')
     conn.commit()
     logger.info('Round has ended')
     jobs = job_queue.jobs()
