@@ -498,7 +498,9 @@ def end_and_plan_next(bot, cont):
 
     next_start_time = (datetime.now() + timedelta(seconds=ROUNDS_INTERVAL)).timestamp()
 
-    cursor.execute(f'''UPDATE {T_USER['NAME']} set {T_USER['FIELDS']['INSTA_LINK']} = NULL WHERE id in (select distinct {T_U_R['FIELDS']['USER_ID']} from {T_U_R['NAME']} where {T_U_R['FIELDS']['ROUND_ID']}=(select distinct id from {T_ROUND['NAME']} \
+    cursor.execute(f'''UPDATE {T_USER['NAME']} set {T_USER['FIELDS']['INSTA_LINK']} = NULL \
+    WHERE id in (select distinct {T_U_R['FIELDS']['USER_ID']} from {T_U_R['NAME']} \
+    where {T_U_R['FIELDS']['ROUND_ID']} in (select distinct id from {T_ROUND['NAME']} \
     where {T_ROUND['FIELDS']['IS_FINISHED']}=True and {T_ROUND['FIELDS']['GROUP_ID']}={chatid}))''')
     conn.commit()
 
