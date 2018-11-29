@@ -57,7 +57,7 @@ T_USER = {'NAME': 'participant',
                   'BAN_WARNS': 'ban_warnings',
                   'USER_ID': 'user_id',
                   'IS_P': 'is_pidoras',
-                  'FULL_NAsME': 'full_name'
+                  'FULL_NAME': 'full_name'
               }
           }
 T_U_R = {'NAME': 'user_and_round',
