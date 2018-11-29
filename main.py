@@ -3,6 +3,7 @@ import logging
 import re
 import sqlite3
 import psycopg2
+import psycopg2.extras
 
 from datetime import datetime, timedelta
 from threading import Thread
@@ -127,14 +128,14 @@ def add_to_next_round(tg_name, chatid, insta_link, userid, fullname):
     =(SELECT id from {T_USER['NAME']} where {T_USER['FIELDS']['FULL_NAME']}=? LIMIT 1)\
     AND {T_U_R['FIELDS']['ROUND_ID']}\
     =(SELECT id from {T_ROUND['NAME']} WHERE {T_ROUND['FIELDS']['GROUP_ID']}=? \
-    AND {T_ROUND['FIELDS']['IS_FINISHED']}=0 ORDER BY id ASC LIMIT 1)'''
+    AND {T_ROUND['FIELDS']['IS_FINISHED']}=False ORDER BY id ASC LIMIT 1)'''
     cursor.execute(query, (fullname, chatid))
     data = cursor.fetchall()
     if not data:  # если пользователь не связан с раундом
         query = f'''INSERT INTO {T_U_R['NAME']} VALUES ((select id from {T_USER['NAME']} \
         where {T_USER['FIELDS']['USER_ID']}=? order by id asc limit 1), \
         (SELECT id from {T_ROUND['NAME']} WHERE {T_ROUND['FIELDS']['GROUP_ID']}=? \
-        AND {T_ROUND['FIELDS']['IS_FINISHED']}=0 ORDER BY id ASC LIMIT 1))'''
+        AND {T_ROUND['FIELDS']['IS_FINISHED']}=False ORDER BY id ASC LIMIT 1))'''
         cursor.execute(query, (userid, chatid))  # creates new round_start
         conn.commit()
         logger.info('Record added')
@@ -147,7 +148,7 @@ def get_next_start_time(chatid):
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
     query = f'''SELECT {T_ROUND['FIELDS']['STARTS_AT']} from {T_ROUND['NAME']} WHERE {T_ROUND['FIELDS']['GROUP_ID']}=? \
-    AND {T_ROUND['FIELDS']['IS_FINISHED']}=0 and {T_ROUND['FIELDS']['STARTS_AT']}>{dt_now} ORDER BY id ASC LIMIT 1'''
+    AND {T_ROUND['FIELDS']['IS_FINISHED']}=False and {T_ROUND['FIELDS']['STARTS_AT']}>{dt_now} ORDER BY id ASC LIMIT 1'''
     cursor.execute(query, (chatid,))
     data = cursor.fetchall()
     conn.close()
@@ -254,7 +255,7 @@ def new_group_setup(bot, update, args, job_queue):
     cursor = conn.cursor()
 
     cursor.execute(f'''select * from {T_ROUND['NAME']} \
-                    WHERE {T_ROUND['FIELDS']['IN_PROGRESS']}=1 and {T_ROUND['FIELDS']['GROUP_ID']} = {update.message.chat.id}''')
+                    WHERE {T_ROUND['FIELDS']['IN_PROGRESS']}=True and {T_ROUND['FIELDS']['GROUP_ID']} = {update.message.chat.id}''')
     data = cursor.fetchall()
     conn.close()
     if data:
@@ -323,7 +324,7 @@ def drop_window(bot, job):
     chatid = job.context[0]
     job_queue = job.context[1]
 
-    cursor.execute(f'''update {T_ROUND['NAME']} set {T_ROUND['FIELDS']['IN_PROGRESS']}=1 \
+    cursor.execute(f'''update {T_ROUND['NAME']} set {T_ROUND['FIELDS']['IN_PROGRESS']}=True \
     where {T_ROUND['FIELDS']['STARTS_AT']} > {dt_now} and {T_ROUND['FIELDS']['GROUP_ID']} = {job.context[0]} order by id ASC limit 1''')
     conn.commit()
     conn.close()
@@ -408,7 +409,7 @@ def check_for_pidority(g, p, chatid, bot):
     cursor = conn.cursor()
     for i in p:
         cursor.execute(f'''select {T_USER['FIELDS']['USER_ID']} from {T_USER['NAME']} \
-        where {T_USER['FIELDS']['IS_P']}=1 and {T_USER['FIELDS']['INSTA_LINK']} like ?''', (f'%{i}%',))
+        where {T_USER['FIELDS']['IS_P']}=True and {T_USER['FIELDS']['INSTA_LINK']} like ?''', (f'%{i}%',))
         data = cursor.fetchone()
         if data:
             print(f'check_for_pidority', data[0])
@@ -424,7 +425,7 @@ def mark_as_pidorases(lst):
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
     for i in lst:
-        cursor.execute(f'''update {T_USER['NAME']} set {T_USER['FIELDS']['IS_P']}=1
+        cursor.execute(f'''update {T_USER['NAME']} set {T_USER['FIELDS']['IS_P']}=True
          where {T_USER['FIELDS']['INSTA_LINK']} like ?''', (f'%{i}%',))
         logger.warning(f'{i} marked as a bad one')
     conn.commit()
@@ -455,11 +456,11 @@ def increment_good_counter(whom):
     conn.commit()
 
     cursor.execute(
-        f'''update {T_USER['NAME']} set {T_USER['FIELDS']['IS_P']}=0  where {T_USER['FIELDS']['BAN_WARNS']}>=10''')
+        f'''update {T_USER['NAME']} set {T_USER['FIELDS']['IS_P']}=False  where {T_USER['FIELDS']['BAN_WARNS']}>=10''')
     conn.commit()
 
     cursor.execute(
-        f'''update {T_USER['NAME']} set {T_USER['FIELDS']['BAN_WARNS']}=0  where {T_USER['FIELDS']['IS_P']}=0''')
+        f'''update {T_USER['NAME']} set {T_USER['FIELDS']['BAN_WARNS']}=0  where {T_USER['FIELDS']['IS_P']}=False''')
     conn.commit()
     conn.close()
 
@@ -485,11 +486,11 @@ def end_and_plan_next(bot, cont):
     cursor = conn.cursor()
 
 
-    cursor.execute(f'''update {T_ROUND['NAME']} set {T_ROUND['FIELDS']['IS_FINISHED']}=1 where \
-    {T_ROUND['FIELDS']['IS_FINISHED']}=0 and {T_ROUND['FIELDS']['STARTS_AT']}={times[chatid]}''')
+    cursor.execute(f'''update {T_ROUND['NAME']} set {T_ROUND['FIELDS']['IS_FINISHED']}=True where \
+    {T_ROUND['FIELDS']['IS_FINISHED']}=False and {T_ROUND['FIELDS']['STARTS_AT']}={times[chatid]}''')
     conn.commit()
-    cursor.execute(f'''update {T_ROUND['NAME']} set {T_ROUND['FIELDS']['IN_PROGRESS']}=0 where \
-    {T_ROUND['FIELDS']['IS_FINISHED']}=1 and {T_ROUND['FIELDS']['STARTS_AT']}={times[chatid]}''')
+    cursor.execute(f'''update {T_ROUND['NAME']} set {T_ROUND['FIELDS']['IN_PROGRESS']}=False where \
+    {T_ROUND['FIELDS']['IS_FINISHED']}=True and {T_ROUND['FIELDS']['STARTS_AT']}={times[chatid]}''')
     conn.commit()
     logger.info('Round has ended')
     jobs = job_queue.jobs()
@@ -499,7 +500,7 @@ def end_and_plan_next(bot, cont):
     next_start_time = (datetime.now() + timedelta(seconds=ROUNDS_INTERVAL)).timestamp()
 
     cursor.execute(f'''UPDATE {T_USER['NAME']} set {T_USER['FIELDS']['INSTA_LINK']} = NULL WHERE id in (select distinct {T_U_R['FIELDS']['USER_ID']} from {T_U_R['NAME']} where {T_U_R['FIELDS']['ROUND_ID']}=(select distinct id from {T_ROUND['NAME']} \
-    where {T_ROUND['FIELDS']['IS_FINISHED']}=1 and {T_ROUND['FIELDS']['GROUP_ID']}={chatid}))''')
+    where {T_ROUND['FIELDS']['IS_FINISHED']}=True and {T_ROUND['FIELDS']['GROUP_ID']}={chatid}))''')
     conn.commit()
 
     query = f'''INSERT INTO {T_ROUND['NAME']} ({T_ROUND['FIELDS']['STARTS_AT']}, \
@@ -571,7 +572,7 @@ def plan_all_round_jobs(job_queue):
 
     cursor.execute(
         f'''select distinct {T_ROUND['FIELDS']['GROUP_ID']} from {T_ROUND['NAME']} \
-        WHERE {T_ROUND['FIELDS']['IS_FINISHED']}=0 and {T_ROUND['FIELDS']['STARTS_AT']}>{dt_now}''')
+        WHERE {T_ROUND['FIELDS']['IS_FINISHED']}=False and {T_ROUND['FIELDS']['STARTS_AT']}>{dt_now}''')
     data = cursor.fetchall()
     conn.close()
     for group in data:
@@ -604,8 +605,8 @@ def finish_past_rounds():
     cursor = conn.cursor()
 
     dt_finish = (datetime.now() - timedelta(seconds=ROUND_TIME)).timestamp()
-    cursor.execute(f'''update {T_ROUND['NAME']} set {T_ROUND['FIELDS']['IS_FINISHED']}=1 where \
-    {T_ROUND['FIELDS']['IS_FINISHED']}=0 and {T_ROUND['FIELDS']['STARTS_AT']}<{dt_finish}''')
+    cursor.execute(f'''update {T_ROUND['NAME']} set {T_ROUND['FIELDS']['IS_FINISHED']}=True where \
+    {T_ROUND['FIELDS']['IS_FINISHED']}=False and {T_ROUND['FIELDS']['STARTS_AT']}<{dt_finish}''')
     conn.commit()
     conn.close()
     logger.info('Past rounds finished')
@@ -622,7 +623,7 @@ def get_next_round_time(bot, update):
     cursor = conn.cursor()
 
     cursor.execute(f'''select {T_ROUND['FIELDS']['STARTS_AT']} from {T_ROUND['NAME']} \
-    where {T_ROUND['FIELDS']['IN_PROGRESS']}=1 \
+    where {T_ROUND['FIELDS']['IN_PROGRESS']}=True \
     and {T_ROUND['FIELDS']['GROUP_ID']}={update.message.chat_id}''')
     data = cursor.fetchone()
     if data:

@@ -2,18 +2,18 @@
 import os
 
 # CREDENTIALS
-TOKEN = os.getenv(TG_TOKEN)  # restart the main script MANUALLY after this field is changed
-ADMIN_PASSWORD = os.getenv(ADMIN_PW)  # to use special bot commands
+TOKEN = '555146285:AAH5vI8Hk4cb-X1Q050-UzK7DQ0Nu_vLSQU' #os.getenv('TG_TOKEN')  # restart the main script MANUALLY after this field is changed
+ADMIN_PASSWORD = os.getenv('ADMIN_PW')  # to use special bot commands
 
 # GROUPS
-CHAT_GROUP = os.getenv(TG_CHAT_GROUP)
+CHAT_GROUP = os.getenv('TG_CHAT')
 
 # INSTA_CREDENTIALS
-INSTA_USERNAME = os.getenv(INSTA_USER)
-INSTA_PASSWORD = os.getenv(INSTA_PW)
+INSTA_USERNAME = os.getenv('INSTA_USER')
+INSTA_PASSWORD = os.getenv('INSTA_PW')
 
 # DATABASE_URL
-DATABASE_URL = os.getenv(DATABASE_URL)
+DATABASE_URL = os.getenv('DATABASE_URL')
 
 # TIMES
 # ROUNDS_INTERVAL = 23 * 60 * 60  # interval between rounds, seconds
@@ -57,7 +57,7 @@ T_USER = {'NAME': 'participant',
                   'BAN_WARNS': 'ban_warnings',
                   'USER_ID': 'user_id',
                   'IS_P': 'is_pidoras',
-                  'FULL_NAME': 'full_name'
+                  'FULL_NAsME': 'full_name'
               }
           }
 T_U_R = {'NAME': 'user_and_round',
