@@ -109,32 +109,32 @@ def usernames_from_links(arr):
 def add_to_next_round(tg_name, chatid, insta_link, userid, fullname):
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
-    cursor.execute(f'''SELECT * from {T_USER['NAME']} where {T_USER['FIELDS']['USER_ID']}=$1''', (userid,))
+    cursor.execute(f'''SELECT * from {T_USER['NAME']} where {T_USER['FIELDS']['USER_ID']}=%s''', (userid,))
     data = cursor.fetchall()
     if not data:  # если пользователя нет в таблице users, добавляем
         query = f'''INSERT INTO {T_USER['NAME']} ({T_USER['FIELDS']['TG_NAME']}, {T_USER['FIELDS']['INSTA_LINK']}, \
-        {T_USER['FIELDS']['USER_ID']}, {T_USER['FIELDS']['FULL_NAME']}) VALUES ($1, $2, $3, $4)'''
+        {T_USER['FIELDS']['USER_ID']}, {T_USER['FIELDS']['FULL_NAME']}) VALUES (%s, %s, %s, %s)'''
         cursor.execute(query, (tg_name, insta_link, userid, fullname))
         conn.commit()
         logger.info(f'{insta_link} inserted')
     else:  # если есть - обновляем ссылку на инсту
-        query = f'''UPDATE {T_USER['NAME']} SET {T_USER['FIELDS']['INSTA_LINK']}=$1, {T_USER['FIELDS']['FULL_NAME']}=$2 \
-                                            WHERE {T_USER['FIELDS']['USER_ID']}=$3'''
+        query = f'''UPDATE {T_USER['NAME']} SET {T_USER['FIELDS']['INSTA_LINK']}=%s, {T_USER['FIELDS']['FULL_NAME']}=%s \
+                                            WHERE {T_USER['FIELDS']['USER_ID']}=%s'''
         cursor.execute(query, (insta_link, fullname, userid))
         conn.commit()
         logger.info(f'{insta_link} changed')
 
     query = f'''SELECT * from {T_U_R['NAME']} WHERE {T_U_R['FIELDS']['USER_ID']}\
-    =(SELECT id from {T_USER['NAME']} where {T_USER['FIELDS']['FULL_NAME']}=$1 LIMIT 1)\
+    =(SELECT id from {T_USER['NAME']} where {T_USER['FIELDS']['FULL_NAME']}=%s LIMIT 1)\
     AND {T_U_R['FIELDS']['ROUND_ID']}\
-    =(SELECT id from {T_ROUND['NAME']} WHERE {T_ROUND['FIELDS']['GROUP_ID']}=$2 \
+    =(SELECT id from {T_ROUND['NAME']} WHERE {T_ROUND['FIELDS']['GROUP_ID']}=%s \
     AND {T_ROUND['FIELDS']['IS_FINISHED']}=False ORDER BY id ASC LIMIT 1)'''
     cursor.execute(query, (fullname, chatid))
     data = cursor.fetchall()
     if not data:  # если пользователь не связан с раундом
         query = f'''INSERT INTO {T_U_R['NAME']} VALUES ((select id from {T_USER['NAME']} \
-        where {T_USER['FIELDS']['USER_ID']}=$1 order by id asc limit 1), \
-        (SELECT id from {T_ROUND['NAME']} WHERE {T_ROUND['FIELDS']['GROUP_ID']}=$2 \
+        where {T_USER['FIELDS']['USER_ID']}=%s order by id asc limit 1), \
+        (SELECT id from {T_ROUND['NAME']} WHERE {T_ROUND['FIELDS']['GROUP_ID']}=%s \
         AND {T_ROUND['FIELDS']['IS_FINISHED']}=False ORDER BY id ASC LIMIT 1))'''
         cursor.execute(query, (userid, chatid))  # creates new round_start
         conn.commit()
@@ -147,7 +147,7 @@ def get_next_start_time(chatid):
 
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
-    query = f'''SELECT {T_ROUND['FIELDS']['STARTS_AT']} from {T_ROUND['NAME']} WHERE {T_ROUND['FIELDS']['GROUP_ID']}=$1 \
+    query = f'''SELECT {T_ROUND['FIELDS']['STARTS_AT']} from {T_ROUND['NAME']} WHERE {T_ROUND['FIELDS']['GROUP_ID']}=%s \
     AND {T_ROUND['FIELDS']['IS_FINISHED']}=False and {T_ROUND['FIELDS']['STARTS_AT']}>{dt_now} ORDER BY id ASC LIMIT 1'''
     cursor.execute(query, (chatid,))
     data = cursor.fetchall()
@@ -301,7 +301,7 @@ def new_group_setup(bot, update, args, job_queue):
             data = cursor.fetchall()
             if not data:
                 query = f'''INSERT INTO {T_ROUND['NAME']} ({T_ROUND['FIELDS']['STARTS_AT']}, \
-                {T_ROUND['FIELDS']['GROUP_ID']}) VALUES ($1, $2)'''
+                {T_ROUND['FIELDS']['GROUP_ID']}) VALUES (%s, %s)'''
                 cursor.execute(query, (next_round_starts, update.message.chat_id))  # creates new round_start
                 conn.commit()
                 #bot.sendMessage(update.message.chat.id, texts.SETUP_SUCCESS)
@@ -409,7 +409,7 @@ def check_for_pidority(g, p, chatid, bot):
     cursor = conn.cursor()
     for i in p:
         cursor.execute(f'''select {T_USER['FIELDS']['USER_ID']} from {T_USER['NAME']} \
-        where {T_USER['FIELDS']['IS_P']}=True and {T_USER['FIELDS']['INSTA_LINK']} like $1''', (f'%{i}%',))
+        where {T_USER['FIELDS']['IS_P']}=True and {T_USER['FIELDS']['INSTA_LINK']} like %s''', (f'%{i}%',))
         data = cursor.fetchone()
         if data:
             print(f'check_for_pidority', data[0])
@@ -426,7 +426,7 @@ def mark_as_pidorases(lst):
     cursor = conn.cursor()
     for i in lst:
         cursor.execute(f'''update {T_USER['NAME']} set {T_USER['FIELDS']['IS_P']}=True
-         where {T_USER['FIELDS']['INSTA_LINK']} like $1''', (f'%{i}%',))
+         where {T_USER['FIELDS']['INSTA_LINK']} like %s''', (f'%{i}%',))
         logger.warning(f'{i} marked as a bad one')
     conn.commit()
     conn.close()
@@ -438,7 +438,7 @@ def ban(bot, userid, chatid):
     cursor = conn.cursor()
 
     cursor.execute (f'''select {T_USER['FIELDS']['FULL_NAME']} from {T_USER['NAME']} \
-    where {T_USER['FIELDS']['USER_ID']} = $1''', (userid,))
+    where {T_USER['FIELDS']['USER_ID']} = %s''', (userid,))
     user_name = cursor.fetchone()
     conn.close()
 
@@ -452,7 +452,7 @@ def increment_good_counter(whom):
 
     for i in whom:
         cursor.execute(f'''update {T_USER['NAME']} set {T_USER['FIELDS']['BAN_WARNS']}={T_USER['FIELDS']['BAN_WARNS']}+1 \
-        where {T_USER['FIELDS']['INSTA_LINK']} like $1''', (f'%{i}%',))
+        where {T_USER['FIELDS']['INSTA_LINK']} like %s''', (f'%{i}%',))
     conn.commit()
 
     cursor.execute(
@@ -471,7 +471,7 @@ def get_bad_users(usrs):
     cursor = conn.cursor()
     for i in usrs:
         cursor.execute(f'''select distinct {T_USER['FIELDS']['FULL_NAME']} from {T_USER['NAME']} \
-        WHERE {T_USER['FIELDS']['INSTA_LINK']} like $1''', (f'%{i}%',))
+        WHERE {T_USER['FIELDS']['INSTA_LINK']} like %s''', (f'%{i}%',))
         data = cursor.fetchone()
         if data:
             res.append(data[0])
@@ -504,7 +504,7 @@ def end_and_plan_next(bot, cont):
     conn.commit()
 
     query = f'''INSERT INTO {T_ROUND['NAME']} ({T_ROUND['FIELDS']['STARTS_AT']}, \
-    {T_ROUND['FIELDS']['GROUP_ID']}) VALUES ($1, $2)'''
+    {T_ROUND['FIELDS']['GROUP_ID']}) VALUES (%s, %s)'''
     cursor.execute(query, (next_start_time, chatid))  # creates new round_start
     conn.commit()
     conn.close()
