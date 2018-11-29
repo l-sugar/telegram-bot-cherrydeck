@@ -2,14 +2,14 @@
 import os
 
 # CREDENTIALS
-TOKEN = '555146285:AAH5vI8Hk4cb-X1Q050-UzK7DQ0Nu_vLSQU' #os.getenv('TG_TOKEN')  # restart the main script MANUALLY after this field is changed
+TOKEN = os.getenv('TG_TOKEN')  # restart the main script MANUALLY after this field is changed
 ADMIN_PASSWORD = os.getenv('ADMIN_PW')  # to use special bot commands
 
 # GROUPS
 CHAT_GROUP = os.getenv('TG_CHAT')
 
 # INSTA_CREDENTIALS
-INSTA_USERNAME = os.getenv('INSTA_USER')
+INSTA_USERNAME = os.getenv('INSTA_HANDLE')
 INSTA_PASSWORD = os.getenv('INSTA_PW')
 
 # DATABASE_URL
