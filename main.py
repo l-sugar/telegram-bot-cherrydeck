@@ -651,6 +651,8 @@ def get_links_to_check(api, insta_handle, participating_insta_links):
 
     logger.info(f'{insta_handle} started manual check')
     list = []
+    likers_missing = []
+    comment_missing = []
     for user in handles:
         if insta_handle == user:
             continue
@@ -661,15 +663,18 @@ def get_links_to_check(api, insta_handle, participating_insta_links):
             post_id = str(api.LastJson.get('items', "")[0].get("pk", ""))
             api.getMediaLikers(post_id)
             if not insta_handle in api.LastJson['users']:
+                likers_missing.append(user)
                 list.append(user)
             else:
                 user_comments = getComments(api, post_id)
                 if not insta_handle in user_comments:
+                    comment_missing.append(user)
                     list.append(user)
             sleep(1.75)
         except Exception as e:
             logger.exception(e)
-
+    logger.info(f'{insta_handle} LIKES MISSING: {likers_missing}')
+    logger.info(f'{insta_handle} COMMENTS MISSING: {comment_missing}')
     return list
 
 
@@ -721,8 +726,10 @@ def check_engagement(bot, update, job_queue):
 
             if len(check_result) > 1:
                 list_to_check = '\nwww.instagram.com/' + '\nwww.instagram.com/'.join(check_result)
-            else:
+            elif len(check_result) == 1:
                 list_to_check = '\nwww.instagram.com/' + check_result[0]
+            elif len(check_result) == 0:
+                bot.delete_message(chat_id=update.message.chat_id, message_id=update.message.message_id)
 
             check_message = name + '\ncheck these users:\n' + list_to_check
 
