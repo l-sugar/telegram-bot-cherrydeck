@@ -718,7 +718,12 @@ def check_engagement(bot, update, job_queue):
         WHERE {T_U_R['FIELDS']['ROUND_ID']} IN (SELECT id FROM {T_ROUND['NAME']} \
         WHERE {T_ROUND['FIELDS']['GROUP_ID']}={update.message.chat_id} \
         AND {T_ROUND['FIELDS']['IN_PROGRESS']}=True))''')
-        participating_insta_links = cursor.fetchall()
+        data = cursor.fetchall()
+        participating_insta_links = []
+
+        for i in data:
+            for j in i:
+                participating_insta_links.append(j)
 
         check_result = get_links_to_check(api, insta_handle, participating_insta_links)
 
