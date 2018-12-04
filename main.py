@@ -700,13 +700,13 @@ def check_engagement(bot, update, job_queue):
         logger.info(f'Received /check command from {update.message.from_user.id}')
         cursor.execute(f'''SELECT {T_USER['FIELDS']['TG_NAME']} FROM {T_USER['NAME']} \
         WHERE {T_USER['FIELDS']['USER_ID']}={update.message.from_user.id}''')
-        data = cursor.fetchone()
+        data = cursor.fetchone()[0]
         if data:
             name = '@' + str(data)
         else:
             cursor.execute(f'''SELECT {T_USER['FIELDS']['FULL_NAME']} FROM {T_USER['NAME']} \
             WHERE {T_USER['FIELDS']['USER_ID']}={update.message.from_user.id}''')
-            name = str(cursor.fetchone())
+            name = str(cursor.fetchone()[0])
 
         cursor.execute(f'''SELECT {T_USER['FIELDS']['INSTA_LINK']} FROM {T_USER['NAME']} \
         WHERE {T_USER['FIELDS']['USER_ID']}={update.message.from_user.id}''')
