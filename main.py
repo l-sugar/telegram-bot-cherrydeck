@@ -743,7 +743,7 @@ def check_engagement(bot, update, job_queue):
         logger_check_list = ' '.join(check_result)
         logger.info(f'{insta_handle} engagements missing: {logger_check_list}')
 
-        time_of_deletion = (datetime.now() + timedelta(seconds=60)).timestamp()
+        time_of_deletion = datetime.now() + timedelta(seconds=60)
         job_queue.run_once(delete_check_message, time_of_deletion, context=[update.message.chat_id, update.message.message_id, update.message.from_user.id], name='delete check message from user')
         job_queue.run_once(delete_bot_message, time_of_deletion, context=[check_response.chat_id, check_response.message_id], name='delete check response from bot')
 
