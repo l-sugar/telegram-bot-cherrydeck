@@ -710,7 +710,7 @@ def check_engagement(bot, update, job_queue):
 
         cursor.execute(f'''SELECT {T_USER['FIELDS']['INSTA_LINK']} FROM {T_USER['NAME']} \
         WHERE {T_USER['FIELDS']['USER_ID']}={update.message.from_user.id}''')
-        data = cursor.fetchone()
+        data = cursor.fetchone()[0]
         insta_handle = handle_from_link(str(data))
 
         cursor.execute(f'''SELECT {T_USER['FIELDS']['INSTA_LINK']} FROM {T_USER['NAME']} \
