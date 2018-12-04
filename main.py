@@ -14,7 +14,6 @@ from telegram.ext import CommandHandler, MessageHandler, Updater, Filters
 
 import texts
 from config import *
-import os
 
 # TODO если надо будет обновлять конфиг в лайве
 # import importlib
