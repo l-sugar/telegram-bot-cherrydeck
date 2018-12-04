@@ -12,8 +12,6 @@ CHAT_GROUP = os.getenv('TG_CHAT')
 INSTA_USERNAME = os.getenv('INSTA_HANDLE')
 INSTA_PASSWORD = os.getenv('INSTA_PW')
 
-# DATABASE_URL
-DATABASE_URL = os.getenv('DATABASE_URL')
 
 # TIMES
 # ROUNDS_INTERVAL = 23 * 60 * 60  # interval between rounds, seconds
@@ -23,11 +21,11 @@ DATABASE_URL = os.getenv('DATABASE_URL')
 # DROP_ENDS_SOON = DROP_WINDOW * 5 // 6 # drop_alert time
 
 # TESTING TIMES
-ROUNDS_INTERVAL = 1 * 2 * 60  # interval between rounds, seconds TESTING
-DROP_WINDOW = 1 * 60  # drop window before each round_start, seconds TESTING
-ROUND_TIME = 1 * 0.1 * 60  # round_start time, seconds TESTING
-DROP_ANNOUNCE = 0.5 * 60 # drop_announcement time, seconds TESTING
-DROP_ENDS_SOON = DROP_WINDOW * 5 // 6 # drop_alert time TESTING
+ROUNDS_INTERVAL = 1 * 20 * 60  # interval between rounds, seconds TESTING
+DROP_WINDOW = 5 * 60  # drop window before each round_start, seconds TESTING
+ROUND_TIME = 1 * 10 * 60  # round_start time, seconds TESTING
+DROP_ANNOUNCE = 3 * 60 # drop_announcement time, seconds TESTING
+DROP_ENDS_SOON = DROP_WINDOW * 4 // 5 # drop_alert time TESTING
 
 # BAD_USER_BAN_TIME = 15 * 24 * 60 * 60 # user ban time after bad behavior
 BAD_USER_BAN_TIME = 1 * 60 * 60 # user ban time after bad behavior TESTING
@@ -38,7 +36,8 @@ CONFIG_NAME = 'config.py'  # this file's name
 FOLDER_PATH = '/'  # this folder's full path
 
 # DATABASE SETTINGS
-DB_NAME = 'bot_base.db'  # full database's path
+DATABASE_URL = os.getenv('DATABASE_URL')
+
 T_ROUND = {'NAME': 'round',
            'FIELDS':
                {
@@ -53,7 +52,6 @@ T_USER = {'NAME': 'participant',
               {
                   'TG_NAME': 'tg_name',
                   'INSTA_LINK': 'insta_link',
-                  'IS_BANNED': 'is_banned',
                   'BAN_WARNS': 'ban_warnings',
                   'USER_ID': 'user_id',
                   'IS_P': 'is_pidoras',

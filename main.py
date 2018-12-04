@@ -314,7 +314,7 @@ def new_group_setup(bot, update, args, job_queue):
                 plan_all_round_jobs(job_queue)
                 jobs = job_queue.jobs()
                 for i in jobs:
-                    logger.warning(f'Job planned: {i.name} in {i.interval}')
+                    logger.warning(f'Job planned: {i.name}')
             else:
                 bot.sendMessage(update.message.chat.id, texts.ROUND_ALREADY_SET)
                 logger.info("There's a round for this group in the future")
@@ -341,7 +341,7 @@ def drop_window(bot, job):
     job_queue.run_once(drop_alert, (DROP_ENDS_SOON), context=chatid, name='plan drop_alert')
     jobs = job_queue.jobs()
     for i in jobs:
-        logger.warning(f'Job planned: {i.name} in {i.interval}')
+        logger.warning(f'Job planned: {i.name}')
 
 
 @async1
@@ -385,9 +385,6 @@ def final_check(bot, job):
     nicks = job.context[1]
     job_queue = job.context[2]
     logger.warning('Final check')
-    jobs = job_queue.jobs()
-    for i in jobs:
-        logger.warning(f'Job planned: {i.name} in {i.interval}')
 
     pidorases = check_instagram(api, nicks)
     if not pidorases:
@@ -399,7 +396,7 @@ def final_check(bot, job):
         bot.sendMessage(chatid, texts.BAD_USERS + list_to_send + texts.BAD_BEHAVIOR_INFO)
 
     goods = list(set(nicks) - set(pidorases))
-    check_for_pidority(goods, pidorases, chatid, bot)
+    check_if_bans_necessary(goods, pidorases, chatid, bot)
     mark_as_pidorases(pidorases)
 
     end_and_plan_next(bot, [chatid, job_queue])
@@ -409,30 +406,32 @@ def announce_round_finish(bot, chatid):
     bot.sendMessage(chatid, f'Next Drop starts in {timedelta(seconds=ROUNDS_INTERVAL) - timedelta(seconds=DROP_WINDOW)}')
 
 
-def check_for_pidority(g, p, chatid, bot):
+def check_if_bans_necessary(g, p, chatid, bot):
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
     for i in p:
         cursor.execute(f'''select {T_USER['FIELDS']['USER_ID']} from {T_USER['NAME']} \
-        where {T_USER['FIELDS']['IS_P']}=True and {T_USER['FIELDS']['INSTA_LINK']} like %s''', (f'%{i}%',))
+        where {T_USER['FIELDS']['BAN_WARNS']}=2 and {T_USER['FIELDS']['INSTA_LINK']} like %s''', (f'%{i}%',))
         data = cursor.fetchone()
         if data:
-            print(f'check_for_pidority', data[0])
+            print(f'user has reached ban limit:', data[0])
             if is_admin(bot, data[0], chatid):
                 logger.warning('Cannot restrict admin')
             else:
                 ban(bot, data[0], chatid)
+                cursor.execute(f'''UPDATE {T_USER['NAME']} SET {T_USER['FIELDS']['BAN_WARNS']}=0 \
+                WHERE {T_USER['FIELDS']['USER_ID']}={data[0]}''')
+                conn.commit()
     conn.close()
-    increment_good_counter(g)
 
 
 def mark_as_pidorases(lst):
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
     for i in lst:
-        cursor.execute(f'''update {T_USER['NAME']} set {T_USER['FIELDS']['IS_P']}=True
+        cursor.execute(f'''update {T_USER['NAME']} set {T_USER['FIELDS']['BAN_WARNS']}=({T_USER['FIELDS']['BAN_WARNS']}+1)
          where {T_USER['FIELDS']['INSTA_LINK']} like %s''', (f'%{i}%',))
-        logger.warning(f'{i} marked as a bad one')
+        logger.warning(f'{i} BAN_WARNS + 1')
     conn.commit()
     conn.close()
 
@@ -450,25 +449,6 @@ def ban(bot, userid, chatid):
     bot.restrict_chat_member(chatid, userid, until_date = (datetime.now() + timedelta(seconds=BAD_USER_BAN_TIME)).timestamp(), can_send_messages = False)
     logger.warning(f'{userid} id has been restricted from posting for 15 days')
     bot.sendMessage(chatid, ''.join(user_name) + texts.BANNED)
-
-def increment_good_counter(whom):
-    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
-    cursor = conn.cursor()
-
-    for i in whom:
-        cursor.execute(f'''update {T_USER['NAME']} set {T_USER['FIELDS']['BAN_WARNS']}={T_USER['FIELDS']['BAN_WARNS']}+1 \
-        where {T_USER['FIELDS']['INSTA_LINK']} like %s''', (f'%{i}%',))
-    conn.commit()
-
-    cursor.execute(
-        f'''update {T_USER['NAME']} set {T_USER['FIELDS']['IS_P']}=False  where {T_USER['FIELDS']['BAN_WARNS']}>=10''')
-    conn.commit()
-
-    cursor.execute(
-        f'''update {T_USER['NAME']} set {T_USER['FIELDS']['BAN_WARNS']}=0  where {T_USER['FIELDS']['IS_P']}=False''')
-    conn.commit()
-    conn.close()
-
 
 def get_bad_users(usrs):
     res = list()
@@ -498,7 +478,7 @@ def end_and_plan_next(bot, cont):
     logger.info('Round has ended')
     jobs = job_queue.jobs()
     for i in jobs:
-        logger.warning(f'Job planned: {i.name} in {i.interval}')
+        logger.warning(f'Job planned: {i.name}')
 
     next_start_time = (datetime.now() + timedelta(seconds=ROUNDS_INTERVAL)).timestamp()
 
@@ -554,7 +534,7 @@ def round_start(bot, job):
         logger.info(f'Checkings planned: {job.context[1].jobs()}')
         jobs = job.context[1].jobs()
         for i in jobs:
-            logger.warning(f'Job planned: {i.name} in {i.interval}')
+            logger.warning(f'Job planned: {i.name}')
 
 
 def get_round_links(time):
@@ -589,7 +569,7 @@ def plan_all_round_jobs(job_queue):
             logger.info(f'Jobs for group {group[0]} added at {dt}')
             jobs = job_queue.jobs()
             for i in jobs:
-                logger.warning(f'Job planned: {i.name} in {i.interval}')
+                logger.warning(f'Job planned: {i.name}')
 
             drop_window_start = dt - timedelta(seconds=DROP_WINDOW)
             drop_announce_time = dt - timedelta(seconds=(DROP_WINDOW + DROP_ANNOUNCE))
@@ -599,7 +579,7 @@ def plan_all_round_jobs(job_queue):
             logger.info(f'Jobs for group {group[0]} added at {drop_window_start}')
             jobs = job_queue.jobs()
             for i in jobs:
-                logger.warning(f'Job planned: {i.name} in {i.interval}')
+                logger.warning(f'Job planned: {i.name}')
 
             add_to_times(group[0])
             logger.info(f'Queue: {job_queue.jobs()}')
