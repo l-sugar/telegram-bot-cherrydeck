@@ -14,6 +14,7 @@ from telegram.ext import CommandHandler, MessageHandler, Updater, Filters
 
 import texts
 from config import *
+import os
 
 # TODO если надо будет обновлять конфиг в лайве
 # import importlib
@@ -55,7 +56,7 @@ def echo(bot, update):
     global times
 
     text = update.message.text.strip()
-    logging.info(f'Received: {}'.format(text))
+    logging.info('Received: {}'.format(text))
     if not re.match(insta_user_pattern, text):
         if is_admin(bot, update.message.from_user.id, update.message.chat_id):
             logger.info("{}'s (admin) message has been passed".format(update.message.from_user.id))
