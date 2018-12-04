@@ -727,11 +727,11 @@ def check_engagement(bot, update, job_queue):
 
         check_result = get_links_to_check(api, insta_handle, participating_insta_links)
 
-        list_to_check = check_result.join('\n')
+        list_to_check = '\n'.join(check_result)
         check_message = name + '\ncheck these users:\n\n' + list_to_check
 
         check_response = bot.sendMessage(update.message.chat_id, check_message, reply_to_message_id=update.message.message_id)
-        logger_check_list = check_result.join(' ')
+        logger_check_list = ' '.join(check_result)
         logger.info(f'{insta_handle} engagements missing: {logger_check_list}')
 
         time_of_deletion = (datetime.now() + timedelta(seconds=60)).timestamp()
@@ -739,7 +739,6 @@ def check_engagement(bot, update, job_queue):
         job_queue.run_once(delete_bot_message, time_of_deletion, context=[check_response.message.chat_id, check_response.message.message_id], name='delete check response from bot')
 
     else:
-        logger.warning('deleted /check command')
         bot.sendMessage(update.message.chat_id, 'The /check command only works when a round is in progress.')
     conn.close()
 
