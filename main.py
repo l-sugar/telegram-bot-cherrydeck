@@ -720,7 +720,7 @@ def check_engagement(bot, update, job_queue):
             check_result = get_links_to_check(api, insta_handle, participating_insta_links)
 
             if len(check_result) > 1:
-                list_to_check = '\nwww.instagram.com/'.join(check_result)
+                list_to_check = '\nwww.instagram.com/' + '\nwww.instagram.com/'.join(check_result)
             else:
                 list_to_check = '\nwww.instagram.com/' + check_result[0]
 
