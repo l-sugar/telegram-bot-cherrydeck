@@ -650,12 +650,21 @@ def get_next_round_time(bot, update):
     logger.info(f'Round time sent: {t}')
 
 def delete_check_message(bot, job):
-    bot.delete_message(chat_id=job.context[0], message_id=job.context[1])
-    logger.info(f'check message deleted in {job.context[0]}')
+    try:
+        if is_admin(bot, job.context[2], job.context[0]):
+            logger.warning(f'cannot delete check message from admin in {job.context[0]}')
+        else:
+            bot.delete_message(chat_id=job.context[0], message_id=job.context[1])
+            logger.info(f'check message deleted in {job.context[0]}')
+    except Exception as e:
+        logger.exception(e)
 
 def delete_bot_message(bot, job):
-    bot.delete_message(chat_id=job.context[0], message_id=job.context[1])
-    logger.info(f'check response deleted in {job.context[0]}')
+    try:
+        bot.delete_message(chat_id=job.context[0], message_id=job.context[1])
+        logger.info(f'check response deleted in {job.context[0]}')
+    except Exception as e:
+        logger.exception(e)
 
 def get_links_to_check(api, insta_handle, participating_insta_links):
     handles = usernames_from_links(participating_insta_links)
@@ -727,16 +736,16 @@ def check_engagement(bot, update, job_queue):
 
         check_result = get_links_to_check(api, insta_handle, participating_insta_links)
 
-        list_to_check = '\n'.join(check_result)
+        list_to_check = '\nwww.instagram.com/'.join(check_result)
         check_message = name + '\ncheck these users:\n\n' + list_to_check
 
-        check_response = bot.sendMessage(update.message.chat_id, check_message, reply_to_message_id=update.message.message_id)
+        check_response = bot.sendMessage(update.message.chat_id, check_message, reply_to_message_id=update.message.message_id, disable_web_page_preview=True)
         logger_check_list = ' '.join(check_result)
         logger.info(f'{insta_handle} engagements missing: {logger_check_list}')
 
         time_of_deletion = (datetime.now() + timedelta(seconds=60)).timestamp()
-        job_queue.run_once(delete_check_message, time_of_deletion, context=[update.message.chat_id, update.message.message_id], name='delete check message from user')
-        job_queue.run_once(delete_bot_message, time_of_deletion, context=[check_response.chat, check_response.message_id], name='delete check response from bot')
+        job_queue.run_once(delete_check_message, time_of_deletion, context=[update.message.chat_id, update.message.message_id, update.message.from_user.id], name='delete check message from user')
+        job_queue.run_once(delete_bot_message, time_of_deletion, context=[check_response.chat_id, check_response.message_id], name='delete check response from bot')
 
     else:
         bot.sendMessage(update.message.chat_id, 'The /check command only works when a round is in progress.')
