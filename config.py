@@ -21,10 +21,10 @@ INSTA_PASSWORD = os.getenv('INSTA_PW')
 # DROP_ENDS_SOON = DROP_WINDOW * 5 // 6 # drop_alert time
 
 # TESTING TIMES
-ROUNDS_INTERVAL = 1 * 20 * 60  # interval between rounds, seconds TESTING
-DROP_WINDOW = 5 * 60  # drop window before each round_start, seconds TESTING
-ROUND_TIME = 1 * 10 * 60  # round_start time, seconds TESTING
-DROP_ANNOUNCE = 3 * 60 # drop_announcement time, seconds TESTING
+ROUNDS_INTERVAL = 1 * 2 * 60  # interval between rounds, seconds TESTING
+DROP_WINDOW = 1 * 60  # drop window before each round_start, seconds TESTING
+ROUND_TIME = 1 * 2 * 60  # round_start time, seconds TESTING
+DROP_ANNOUNCE = 1 * 60 # drop_announcement time, seconds TESTING
 DROP_ENDS_SOON = DROP_WINDOW * 4 // 5 # drop_alert time TESTING
 
 # BAD_USER_BAN_TIME = 15 * 24 * 60 * 60 # user ban time after bad behavior

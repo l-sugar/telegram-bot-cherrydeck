@@ -711,7 +711,7 @@ def check_engagement(bot, update, job_queue):
                 name = str(cursor.fetchone()[0])
 
             cursor.execute(f'''SELECT {T_USER['FIELDS']['INSTA_LINK']} FROM {T_USER['NAME']} \
-            WHERE id IN (SELECT DISTINCT {T_U_R['FIELDS']['USER_ID']} FROM {T_U_R['NAME']} \
+            WHERE id IN (SELECT {T_U_R['FIELDS']['USER_ID']} FROM {T_U_R['NAME']} \
             WHERE {T_U_R['FIELDS']['ROUND_ID']} IN (SELECT id FROM {T_ROUND['NAME']} \
             WHERE {T_ROUND['FIELDS']['GROUP_ID']}={update.message.chat_id} \
             AND {T_ROUND['FIELDS']['IN_PROGRESS']}=True))''')
@@ -721,6 +721,7 @@ def check_engagement(bot, update, job_queue):
             for i in data:
                 for j in i:
                     participating_insta_links.append(j)
+            logger.warning(f'PARTICIPATING INSTA LINKS ARE: {participating_insta_links}')
 
             check_result = get_links_to_check(api, insta_handle, participating_insta_links)
 
