@@ -610,8 +610,8 @@ def finish_past_rounds():
     cursor = conn.cursor()
 
     dt_finish = (datetime.now() - timedelta(seconds=ROUND_TIME)).timestamp()
-    cursor.execute(f'''update {T_ROUND['NAME']} set {T_ROUND['FIELDS']['IS_FINISHED']}=True where \
-    {T_ROUND['FIELDS']['IS_FINISHED']}=False and {T_ROUND['FIELDS']['STARTS_AT']}<{dt_finish}''')
+    cursor.execute(f'''update {T_ROUND['NAME']} set {T_ROUND['FIELDS']['IS_FINISHED']}=True, \
+    {T_ROUND['FIELDS']['IN_PROGRESS']}=False where {T_ROUND['FIELDS']['STARTS_AT']}<{dt_finish}''')
     conn.commit()
     conn.close()
     logger.info('Past rounds finished')
