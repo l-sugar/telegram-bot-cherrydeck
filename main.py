@@ -55,7 +55,7 @@ def echo(bot, update):
     global times
 
     text = update.message.text.strip()
-    logging.info('Received: {}'.format(text))
+    logging.info(f'Received: {}'.format(text))
     if not re.match(insta_user_pattern, text):
         if is_admin(bot, update.message.from_user.id, update.message.chat_id):
             logger.info("{}'s (admin) message has been passed".format(update.message.from_user.id))
@@ -80,7 +80,7 @@ def echo(bot, update):
                 add_to_next_round(update.message.from_user.username, update.message.chat.id, text,
                                   update.message.from_user.id, update.message.from_user.full_name)
             else:
-                add_to_next_round(update.message.from_user.id, update.message.chat.id, text,
+                add_to_next_round('', update.message.chat.id, text,
                                   update.message.from_user.id, update.message.from_user.full_name)
             #bot.sendMessage(update.message.chat_id, texts.LINK_ADDED)
 
@@ -97,13 +97,17 @@ def usernames_from_links(arr):
         #i = re.search(r'nstagram.com/*+/?', i)
         # if i.find("?") >= 1:
         #     i = i.rsplit('?', maxsplit=1)[-1]
-        match = re.search('nstagram.com/[^/]+', i)
+        match = re.search('nstagram.com/[^/?]+', i)
         # if i[-1] == '/':
         #     i = i[:-1]
         username = match.group().rsplit('/', maxsplit=1)[-1]
         res.append(username)
     return res
 
+def handle_from_link(link):
+    match = re.search('nstagram.com/[^/?]+', link)
+    username = match.group().rsplit('/', maxsplit=1)[-1]
+    return username
 
 # @async1
 def add_to_next_round(tg_name, chatid, insta_link, userid, fullname):
@@ -645,8 +649,92 @@ def get_next_round_time(bot, update):
     bot.sendMessage(update.message.chat_id, message)
     logger.info(f'Round time sent: {t}')
 
-# @async1
-# def check_engagement(bot, update, args, job_queue):
+def delete_check_message(bot, job):
+    bot.delete_message(chat_id=job.context[0], message_id=job.context[1])
+    logger.info(f'check message deleted in {job.context[0]}')
+
+def delete_bot_message(bot, job):
+    bot.delete_message(chat_id=job.context[0], message_id=job.context[1])
+    logger.info(f'check response deleted in {job.context[0]}')
+
+def get_links_to_check(api, insta_handle, participating_insta_links):
+    handles = usernames_from_links(participating_insta_links)
+
+    logger.info(f'{insta_handle} started manual check')
+    list = []
+    for user in handles:
+        try:
+            api.searchUsername(user)
+            id = str(api.LastJson.get('user', "").get("pk", ""))
+            api.getUserFeed(id)
+            post_id = str(api.LastJson.get('items', "")[0].get("pk", ""))
+            api.getMediaLikers(post_id)
+            if not insta_handle in api.LastJson['users']:
+                list.append(user)
+            else:
+                user_comments = getComments(api, post_id)
+                if not insta_handle in user_comments:
+                    list.append(user)
+            sleep(1.75)
+        except Exception as e:
+            logger.exception(e)
+
+    return list
+
+
+
+@async1
+def check_engagement(bot, update, job_queue):
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+    cursor = conn.cursor()
+
+    cursor.execute(f'''SELECT * FROM {T_ROUND['NAME']} \
+    WHERE {T_ROUND['FIELDS']['GROUP_ID']}={update.message.chat_id} \
+    AND {T_ROUND['FIELDS']['IN_PROGRESS']}=True ORDER BY id ASC LIMIT 1''')
+    data = cursor.fetchone()
+
+    if data:
+
+        logger.info(f'Received /check command from {update.message.user_id}')
+        cursor.execute(f'''SELECT {T_USER['FIELDS']['TG_NAME']} FROM {T_USER['NAME']} \
+        WHERE {T_USER['FIELDS']['USER_ID']}={update.message.user_id}''')
+        data = cursor.fetchone()
+        if data:
+            name = '@' + data
+        else:
+            cursor.execute(f'''SELECT {T_USER['FIELDS']['FULL_NAME']} FROM {T_USER['NAME']} \
+            WHERE {T_USER['FIELDS']['USER_ID']}={update.message.user_id}''')
+            name = cursor.fetchone()
+
+        cursor.execute(f'''SELECT {T_USER['FIELDS']['INSTA_LINK']} FROM {T_USER['NAME']} \
+        WHERE {T_USER['FIELDS']['USER_ID']}={update.message.user_id}''')
+        data = cursor.fetchone()
+        insta_handle = handle_from_link(data)
+
+        cursor.execute(f'''SELECT {T_USER['FIELDS']['INSTA_LINK']} FROM {T_USER['NAME']} \
+        WHERE id IN (SELECT DISTINCT {T_U_R['FIELDS']['USER_ID']} FROM {T_U_R['NAME']} \
+        WHERE {T_U_R['FIELDS']['ROUND_ID']} IN (SELECT id FROM {T_ROUND['NAME']} \
+        WHERE {T_ROUND['FIELDS']['GROUP_ID']}={update.message.chat_id} \
+        AND {T_ROUND['FIELDS']['IN_PROGRESS']}=True))''')
+        participating_insta_links = cursor.fetchall()
+
+        check_result = get_links_to_check(api, insta_handle, participating_insta_links)
+
+        list_to_check = check_result.join('\n')
+        check_message = name + '\ncheck these users:\n\n' + list_to_check
+
+        check_response = bot.sendMessage(update.message.chat_id, check_message, reply_to_message_id=update.message.message_id)
+        logger_check_list = check_result.join(' ')
+        logger.info(f'{insta_handle} engagements missing: {logger_check_list}')
+
+        time_of_deletion = (datetime.now() + timedelta(seconds=60)).timestamp()
+        job_queue.run_once(delete_check_message, time_of_deletion, context=[update.message.chat_id, update.message.message_id], name='delete check message from user')
+        job_queue.run_once(delete_bot_message, time_of_deletion, context=[check_response.message.chat_id, check_response.message.message_id], name='delete check response from bot')
+
+    else:
+        logger.warning('deleted /check command')
+        bot.sendMessage(update.message.chat_id, 'The /check command only works when a round is in progress.')
+    conn.close()
 
 
 def setup():
@@ -660,7 +748,7 @@ def setup():
     dp.add_handler(CommandHandler("setup", new_group_setup, pass_args=True, pass_job_queue=True))
     dp.add_handler(CommandHandler("help", help))
     dp.add_handler(CommandHandler("nextround", get_next_round_time))
-    # dp.add_handler(CommandHandler("check", check_engagement, pass_args=True, pass_job_queue=True))
+    dp.add_handler(CommandHandler("check", check_engagement, pass_job_queue=True))
     dp.add_handler(MessageHandler(Filters.text, echo))
     #dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, new_user_welcome))
     dp.add_error_handler(error)
