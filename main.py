@@ -740,8 +740,8 @@ def check_engagement(bot, update, job_queue):
             list_to_check = '\nwww.instagram.com/'.join(check_result)
         else:
             list_to_check = '\nwww.instagram.com/' + check_result[0]
-            
-        check_message = name + '\ncheck these users:\n\n' + list_to_check
+
+        check_message = name + '\ncheck these users:\n' + list_to_check
 
         check_response = bot.sendMessage(update.message.chat_id, check_message, reply_to_message_id=update.message.message_id, disable_web_page_preview=True)
         logger_check_list = ' '.join(check_result)
