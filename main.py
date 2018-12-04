@@ -695,19 +695,19 @@ def check_engagement(bot, update, job_queue):
 
     if data:
 
-        logger.info(f'Received /check command from {update.message.user_id}')
+        logger.info(f'Received /check command from {update.message.from}')
         cursor.execute(f'''SELECT {T_USER['FIELDS']['TG_NAME']} FROM {T_USER['NAME']} \
-        WHERE {T_USER['FIELDS']['USER_ID']}={update.message.user_id}''')
+        WHERE {T_USER['FIELDS']['USER_ID']}={update.message.from}''')
         data = cursor.fetchone()
         if data:
             name = '@' + data
         else:
             cursor.execute(f'''SELECT {T_USER['FIELDS']['FULL_NAME']} FROM {T_USER['NAME']} \
-            WHERE {T_USER['FIELDS']['USER_ID']}={update.message.user_id}''')
+            WHERE {T_USER['FIELDS']['USER_ID']}={update.message.from}''')
             name = cursor.fetchone()
 
         cursor.execute(f'''SELECT {T_USER['FIELDS']['INSTA_LINK']} FROM {T_USER['NAME']} \
-        WHERE {T_USER['FIELDS']['USER_ID']}={update.message.user_id}''')
+        WHERE {T_USER['FIELDS']['USER_ID']}={update.message.from}''')
         data = cursor.fetchone()
         insta_handle = handle_from_link(data)
 
