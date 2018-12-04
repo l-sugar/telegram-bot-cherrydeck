@@ -663,6 +663,8 @@ def get_links_to_check(api, insta_handle, participating_insta_links):
     logger.info(f'{insta_handle} started manual check')
     list = []
     for user in handles:
+        if insta_handle == user:
+            continue
         try:
             api.searchUsername(user)
             id = str(api.LastJson.get('user', "").get("pk", ""))
