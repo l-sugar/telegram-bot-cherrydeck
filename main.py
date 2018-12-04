@@ -700,16 +700,16 @@ def check_engagement(bot, update, job_queue):
         WHERE {T_USER['FIELDS']['USER_ID']}={update.message.from_user.id}''')
         data = cursor.fetchone()
         if data:
-            name = '@' + data
+            name = '@' + str(data)
         else:
             cursor.execute(f'''SELECT {T_USER['FIELDS']['FULL_NAME']} FROM {T_USER['NAME']} \
             WHERE {T_USER['FIELDS']['USER_ID']}={update.message.from_user.id}''')
-            name = cursor.fetchone()
+            name = str(cursor.fetchone())
 
         cursor.execute(f'''SELECT {T_USER['FIELDS']['INSTA_LINK']} FROM {T_USER['NAME']} \
         WHERE {T_USER['FIELDS']['USER_ID']}={update.message.from_user.id}''')
         data = cursor.fetchone()
-        insta_handle = handle_from_link(data)
+        insta_handle = handle_from_link(str(data))
 
         cursor.execute(f'''SELECT {T_USER['FIELDS']['INSTA_LINK']} FROM {T_USER['NAME']} \
         WHERE id IN (SELECT DISTINCT {T_U_R['FIELDS']['USER_ID']} FROM {T_U_R['NAME']} \
