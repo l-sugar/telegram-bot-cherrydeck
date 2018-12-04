@@ -706,51 +706,57 @@ def check_engagement(bot, update, job_queue):
 
     if data:
 
-        logger.info(f'Received /check command from {update.message.from_user.id}')
-        cursor.execute(f'''SELECT {T_USER['FIELDS']['TG_NAME']} FROM {T_USER['NAME']} \
+        cursor.execute(f'''SELECT {T_USER['FIELDS']['INSTA_LINK']} FROM {T_USER['NAME']} \
         WHERE {T_USER['FIELDS']['USER_ID']}={update.message.from_user.id}''')
         data = cursor.fetchone()[0]
+
         if data:
-            name = '@' + str(data)
-        else:
-            cursor.execute(f'''SELECT {T_USER['FIELDS']['FULL_NAME']} FROM {T_USER['NAME']} \
+
+            insta_handle = handle_from_link(str(data))
+
+            logger.info(f'Received /check command from {update.message.from_user.id}')
+            cursor.execute(f'''SELECT {T_USER['FIELDS']['TG_NAME']} FROM {T_USER['NAME']} \
             WHERE {T_USER['FIELDS']['USER_ID']}={update.message.from_user.id}''')
-            name = str(cursor.fetchone()[0])
+            data = cursor.fetchone()[0]
+            if data:
+                name = '@' + str(data)
+            else:
+                cursor.execute(f'''SELECT {T_USER['FIELDS']['FULL_NAME']} FROM {T_USER['NAME']} \
+                WHERE {T_USER['FIELDS']['USER_ID']}={update.message.from_user.id}''')
+                name = str(cursor.fetchone()[0])
 
-        cursor.execute(f'''SELECT {T_USER['FIELDS']['INSTA_LINK']} FROM {T_USER['NAME']} \
-        WHERE {T_USER['FIELDS']['USER_ID']}={update.message.from_user.id}''')
-        data = cursor.fetchone()[0]
-        insta_handle = handle_from_link(str(data))
+            cursor.execute(f'''SELECT {T_USER['FIELDS']['INSTA_LINK']} FROM {T_USER['NAME']} \
+            WHERE id IN (SELECT DISTINCT {T_U_R['FIELDS']['USER_ID']} FROM {T_U_R['NAME']} \
+            WHERE {T_U_R['FIELDS']['ROUND_ID']} IN (SELECT id FROM {T_ROUND['NAME']} \
+            WHERE {T_ROUND['FIELDS']['GROUP_ID']}={update.message.chat_id} \
+            AND {T_ROUND['FIELDS']['IN_PROGRESS']}=True))''')
+            data = cursor.fetchall()
+            participating_insta_links = []
 
-        cursor.execute(f'''SELECT {T_USER['FIELDS']['INSTA_LINK']} FROM {T_USER['NAME']} \
-        WHERE id IN (SELECT DISTINCT {T_U_R['FIELDS']['USER_ID']} FROM {T_U_R['NAME']} \
-        WHERE {T_U_R['FIELDS']['ROUND_ID']} IN (SELECT id FROM {T_ROUND['NAME']} \
-        WHERE {T_ROUND['FIELDS']['GROUP_ID']}={update.message.chat_id} \
-        AND {T_ROUND['FIELDS']['IN_PROGRESS']}=True))''')
-        data = cursor.fetchall()
-        participating_insta_links = []
+            for i in data:
+                for j in i:
+                    participating_insta_links.append(j)
 
-        for i in data:
-            for j in i:
-                participating_insta_links.append(j)
+            check_result = get_links_to_check(api, insta_handle, participating_insta_links)
 
-        check_result = get_links_to_check(api, insta_handle, participating_insta_links)
+            if len(check_result) > 1:
+                list_to_check = '\nwww.instagram.com/'.join(check_result)
+            else:
+                list_to_check = '\nwww.instagram.com/' + check_result[0]
 
-        if len(check_result) > 1:
-            list_to_check = '\nwww.instagram.com/'.join(check_result)
+            check_message = name + '\ncheck these users:\n' + list_to_check
+
+            check_response = bot.sendMessage(update.message.chat_id, check_message, reply_to_message_id=update.message.message_id, disable_web_page_preview=True)
+            logger_check_list = ' '.join(check_result)
+            logger.info(f'{insta_handle} engagements missing: {logger_check_list}')
+
+            time_of_deletion = datetime.now() + timedelta(seconds=60)
+            job_queue.run_once(delete_check_message, time_of_deletion, context=[update.message.chat_id, update.message.message_id, update.message.from_user.id], name='delete check message from user')
+            job_queue.run_once(delete_bot_message, time_of_deletion, context=[check_response.chat_id, check_response.message_id], name='delete check response from bot')
         else:
-            list_to_check = '\nwww.instagram.com/' + check_result[0]
-
-        check_message = name + '\ncheck these users:\n' + list_to_check
-
-        check_response = bot.sendMessage(update.message.chat_id, check_message, reply_to_message_id=update.message.message_id, disable_web_page_preview=True)
-        logger_check_list = ' '.join(check_result)
-        logger.info(f'{insta_handle} engagements missing: {logger_check_list}')
-
-        time_of_deletion = datetime.now() + timedelta(seconds=60)
-        job_queue.run_once(delete_check_message, time_of_deletion, context=[update.message.chat_id, update.message.message_id, update.message.from_user.id], name='delete check message from user')
-        job_queue.run_once(delete_bot_message, time_of_deletion, context=[check_response.chat_id, check_response.message_id], name='delete check response from bot')
-
+            bot.delete_message(chat_id=update.message.chat_id, message_id=update.message.message_id)
+            logger.info('deleted /check message from non-participating user')
+            check_not_parti = bot.sendMessage(update.message.chat_id, 'The /check command is only available for participants of the drop')
     else:
         bot.sendMessage(update.message.chat_id, 'The /check command only works when a round is in progress.')
     conn.close()
