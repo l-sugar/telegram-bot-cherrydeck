@@ -736,7 +736,11 @@ def check_engagement(bot, update, job_queue):
 
         check_result = get_links_to_check(api, insta_handle, participating_insta_links)
 
-        list_to_check = '\nwww.instagram.com/'.join(check_result)
+        if len(check_result) > 1:
+            list_to_check = '\nwww.instagram.com/'.join(check_result)
+        else:
+            list_to_check = '\nwww.instagram.com/' + check_result[0]
+            
         check_message = name + '\ncheck these users:\n\n' + list_to_check
 
         check_response = bot.sendMessage(update.message.chat_id, check_message, reply_to_message_id=update.message.message_id, disable_web_page_preview=True)
