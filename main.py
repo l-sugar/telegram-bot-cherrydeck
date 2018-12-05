@@ -729,24 +729,31 @@ def check_engagement(bot, update, job_queue):
 
             check_result = get_links_to_check(api, insta_handle, participating_insta_links)
 
-            if len(check_result) > 1:
-                list_to_check = '\nwww.instagram.com/' + '\nwww.instagram.com/'.join(check_result)
-            else:
-                list_to_check = '\nwww.instagram.com/' + check_result[0]
 
-            check_message = name + '\ncheck these users:\n' + list_to_check
+            if check_result:
+                if len(check_result) > 1:
+                    list_to_check = '\nwww.instagram.com/' + '\nwww.instagram.com/'.join(check_result)
+                else:
+                    list_to_check = '\nwww.instagram.com/' + check_result[0]
+
+                check_message = name + '\ncheck these users:\n' + list_to_check
+
+                logger_check_list = ' '.join(check_result)
+                logger.info(f'{insta_handle} engagements missing: {logger_check_list}')
+
+            else:
+                check_message = name + '\n you engaged with everyone participating so far, great work!'
 
             check_response = bot.sendMessage(update.message.chat_id, check_message, reply_to_message_id=update.message.message_id, disable_web_page_preview=True)
-            logger_check_list = ' '.join(check_result)
-            logger.info(f'{insta_handle} engagements missing: {logger_check_list}')
 
             time_of_deletion = datetime.now() + timedelta(seconds=60)
-            job_queue.run_once(delete_check_message, time_of_deletion, context=[update.message.chat_id, update.message.message_id, update.message.from_user.id], name='delete check message from user')
             job_queue.run_once(delete_bot_message, time_of_deletion, context=[check_response.chat_id, check_response.message_id], name='delete check response from bot')
+            job_queue.run_once(delete_check_message, time_of_deletion, context=[update.message.chat_id, update.message.message_id, update.message.from_user.id], name='delete check message from user')
+
         else:
             bot.delete_message(chat_id=update.message.chat_id, message_id=update.message.message_id)
             logger.info('deleted /check message from non-participating user')
-            check_not_parti = bot.sendMessage(update.message.chat_id, 'The /check command is only available for participants of the drop')
+            bot.sendMessage(update.message.chat_id, 'The /check command is only available for participants of the drop')
     else:
         bot.sendMessage(update.message.chat_id, 'The /check command only works when a round is in progress.')
     conn.close()
