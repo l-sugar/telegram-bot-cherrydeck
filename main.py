@@ -684,6 +684,7 @@ def get_links_to_check(api, insta_handle, participating_insta_links):
                 logger.exception(e)
     logger.info(f'{insta_handle} LIKES MISSING: {likers_missing}')
     logger.info(f'{insta_handle} COMMENTS MISSING: {comment_missing}')
+    logger.info(f'{insta_handle}LIST TO CHECK: {list}')
     return list
 
 
@@ -747,7 +748,7 @@ def check_engagement(bot, update, job_queue):
                 logger.info(f'{insta_handle} engagements missing: {logger_check_list}')
 
             else:
-                check_message = name + '\n you engaged with everyone participating so far, great work!'
+                check_message = name + '\nyou engaged with everyone participating so far, great work!'
 
             check_response = bot.sendMessage(update.message.chat_id, check_message, reply_to_message_id=update.message.message_id, disable_web_page_preview=True)
 
