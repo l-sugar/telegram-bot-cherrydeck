@@ -648,7 +648,6 @@ def delete_bot_message(bot, job):
     except Exception as e:
         logger.exception(e)
 
-@async1
 def get_links_to_check(api, insta_handle, participating_insta_links):
     handles = usernames_from_links(participating_insta_links)
 
@@ -682,9 +681,11 @@ def get_links_to_check(api, insta_handle, participating_insta_links):
                 sleep(1.75)
             except Exception as e:
                 logger.exception(e)
+            finally:
+                continue
     logger.info(f'{insta_handle} LIKES MISSING: {likers_missing}')
     logger.info(f'{insta_handle} COMMENTS MISSING: {comment_missing}')
-    logger.info(f'{insta_handle}LIST TO CHECK: {list}')
+    logger.info(f'{insta_handle} LIST TO CHECK: {list}')
     return list
 
 
