@@ -725,11 +725,11 @@ def check_engagement(bot, update, job_queue):
             WHERE {T_ROUND['FIELDS']['GROUP_ID']}={update.message.chat_id} \
             AND {T_ROUND['FIELDS']['IN_PROGRESS']}=True))''')
             data = cursor.fetchall()
-            participating_insta_links = [y for y in [x for x in data]]
+            participating_insta_links = []
 
-            # for i in data:
-            #     for j in i:
-            #         participating_insta_links.append(j)
+            for i in data:
+                for j in i:
+                    participating_insta_links.append(str(j))
             logger.warning(f'PARTICIPATING INSTA LINKS ARE: {participating_insta_links}')
 
             check_result = get_links_to_check(api, insta_handle, participating_insta_links)
