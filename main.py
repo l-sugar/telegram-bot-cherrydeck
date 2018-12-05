@@ -330,7 +330,7 @@ def drop_window(bot, job):
 
     cursor.execute(f'''update {T_ROUND['NAME']} SET {T_ROUND['FIELDS']['IN_PROGRESS']}=True \
     WHERE {T_ROUND['FIELDS']['STARTS_AT']} > {dt_now} \
-    AND {T_ROUND['FIELDS']['GROUP_ID']} = {job.context[0]} ORDER BY id ASC LIMIT 1)''')
+    AND {T_ROUND['FIELDS']['GROUP_ID']} = {job.context[0]}''')
     conn.commit()
     conn.close()
 
