@@ -654,27 +654,27 @@ def get_links_to_check(api, insta_handle, participating_insta_links):
     likers_missing = []
     comment_missing = []
     for user in handles:
-        if insta_handle == user:
+        if user == insta_handle:
             continue
-        try:
-            logger.warning(f'{user} insta-check started')
-            api.searchUsername(user)
-            id = str(api.LastJson.get('user', "").get("pk", ""))
-            api.getUserFeed(id)
-            post_id = str(api.LastJson.get('items', "")[0].get("pk", ""))
-            api.getMediaLikers(post_id)
-            likers_handles = []
-            for x in api.LastJson['users']:
-                likers_handles.append(x.get('username', ""))
-            if not insta_handle in likers_handles:
-                likers_missing.append(user)
-                list.append(user)
-            else:
+        else:
+            try:
+                logger.warning(f'{user} insta-check started')
+                api.searchUsername(user)
+                id = str(api.LastJson.get('user', "").get("pk", ""))
+                api.getUserFeed(id)
+                post_id = str(api.LastJson.get('items', "")[0].get("pk", ""))
+                api.getMediaLikers(post_id)
+                likers_handles = []
+                for i in api.LastJson['users']:
+                    likers_handles.append(i.get('username', ""))
+                if not insta_handle in likers_handles:
+                    likers_missing.append(user)
                 user_comments = getComments(api, post_id)
                 if not insta_handle in user_comments:
                     comment_missing.append(user)
-                    list.append(user)
-            sleep(1.75)
+                list.append(x for x in likers_missing)
+                list.append(x for x in comment_missing)
+                sleep(1.75)
         except Exception as e:
             logger.exception(e)
     logger.info(f'{insta_handle} LIKES MISSING: {likers_missing}')
