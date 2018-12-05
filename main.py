@@ -101,7 +101,7 @@ def usernames_from_links(arr):
         # if i[-1] == '/':
         #     i = i[:-1]
         username = match.group().rsplit('/', maxsplit=1)[-1]
-        res.append(str(username))
+        res.append(username)
     return res
 
 def handle_from_link(link):
