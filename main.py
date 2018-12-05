@@ -101,7 +101,7 @@ def usernames_from_links(arr):
         # if i[-1] == '/':
         #     i = i[:-1]
         username = match.group().rsplit('/', maxsplit=1)[-1]
-        res.append(username)
+        res.append(str(username))
     return res
 
 def handle_from_link(link):
@@ -666,7 +666,7 @@ def get_links_to_check(api, insta_handle, participating_insta_links):
                 api.getMediaLikers(post_id)
                 likers_handles = []
                 for i in api.LastJson['users']:
-                    likers_handles.append(i.get('username', ""))
+                    likers_handles.append(str(i.get('username', "")))
                 if not insta_handle in likers_handles:
                     likers_missing.append(user)
                 user_comments = getComments(api, post_id)
