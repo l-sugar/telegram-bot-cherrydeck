@@ -659,30 +659,25 @@ def get_links_to_check(api, insta_handle, participating_insta_links):
         if user == insta_handle:
             continue
         else:
-            try:
-                logger.warning(f'{user} insta-check started')
-                api.searchUsername(user)
-                id = str(api.LastJson.get('user', "").get("pk", ""))
-                api.getUserFeed(id)
-                post_id = str(api.LastJson.get('items', "")[0].get("pk", ""))
-                api.getMediaLikers(post_id)
-                likers_handles = []
-                for i in api.LastJson['users']:
-                    likers_handles.append(str(i.get('username', "")))
-                if not insta_handle in likers_handles:
-                    likers_missing.append(user)
-                user_comments = getComments(api, post_id)
-                if not insta_handle in user_comments:
-                    comment_missing.append(user)
-                for i in likers_missing:
-                    list.append(str(i))
-                for j in comment_missing:
-                    list.append(str(j))
-                sleep(1.75)
-            except Exception as e:
-                logger.exception(e)
-            finally:
-                continue
+            logger.warning(f'{user} insta-check started')
+            api.searchUsername(user)
+            id = str(api.LastJson.get('user', "").get("pk", ""))
+            api.getUserFeed(id)
+            post_id = str(api.LastJson.get('items', "")[0].get("pk", ""))
+            api.getMediaLikers(post_id)
+            likers_handles = []
+            for i in api.LastJson['users']:
+                likers_handles.append(str(i.get('username', "")))
+            if not insta_handle in likers_handles:
+                likers_missing.append(user)
+            user_comments = getComments(api, post_id)
+            if not insta_handle in user_comments:
+                comment_missing.append(user)
+            for i in likers_missing:
+                list.append(str(i))
+            for j in comment_missing:
+                list.append(str(j))
+            sleep(1.75)
     logger.info(f'{insta_handle} LIKES MISSING: {likers_missing}')
     logger.info(f'{insta_handle} COMMENTS MISSING: {comment_missing}')
     logger.info(f'{insta_handle} LIST TO CHECK: {list}')
