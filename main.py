@@ -731,10 +731,8 @@ def check_engagement(bot, update, job_queue):
 
             if len(check_result) > 1:
                 list_to_check = '\nwww.instagram.com/' + '\nwww.instagram.com/'.join(check_result)
-            elif len(check_result) == 1:
+            else:
                 list_to_check = '\nwww.instagram.com/' + check_result[0]
-            elif len(check_result) == 0:
-                bot.delete_message(chat_id=update.message.chat_id, message_id=update.message.message_id)
 
             check_message = name + '\ncheck these users:\n' + list_to_check
 
