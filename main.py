@@ -675,8 +675,8 @@ def get_links_to_check(api, insta_handle, participating_insta_links):
                 list.append(x for x in likers_missing)
                 list.append(x for x in comment_missing)
                 sleep(1.75)
-        except Exception as e:
-            logger.exception(e)
+            except Exception as e:
+                logger.exception(e)
     logger.info(f'{insta_handle} LIKES MISSING: {likers_missing}')
     logger.info(f'{insta_handle} COMMENTS MISSING: {comment_missing}')
     return list
