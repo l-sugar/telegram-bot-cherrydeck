@@ -657,12 +657,16 @@ def get_links_to_check(api, insta_handle, participating_insta_links):
         if insta_handle == user:
             continue
         try:
+            logger.warning(f'{user} insta-check started')
             api.searchUsername(user)
             id = str(api.LastJson.get('user', "").get("pk", ""))
             api.getUserFeed(id)
             post_id = str(api.LastJson.get('items', "")[0].get("pk", ""))
             api.getMediaLikers(post_id)
-            if not insta_handle in api.LastJson['users']:
+            likers_handles = []
+            for x in api.LastJson['users']:
+                likers_handles.append(x.get('username', ""))
+            if not insta_handle in likers_handles:
                 likers_missing.append(user)
                 list.append(user)
             else:
@@ -749,6 +753,35 @@ def check_engagement(bot, update, job_queue):
         bot.sendMessage(update.message.chat_id, 'The /check command only works when a round is in progress.')
     conn.close()
 
+# def delete_next_round(update, job_queue):
+#     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+#     cursor = conn.cursor()
+#     dt_now = datetime.now().timestamp()
+#
+#     cursor.execute(f'''DELETE FROM {T_ROUND} WHERE {T_ROUND['FIELDS']['GROUP_ID']}={update.message.chat_id} \
+#     AND {T_ROUND['FIELDS']['STARTS_AT']}>{dt_now}''')
+#     conn.commit()
+#
+#     logger.info(f'future rounds deleted: {update.message.chat_id}')
+#     conn.close()
+#
+#
+# def stop_future_rounds(bot, update, job_queue):
+#     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+#     cursor = conn.cursor()
+#     dt_now = datetime.now().timestamp()
+#     logger.info(f'received /stop command: {update.message.chat_id}')
+#     if is_admin(bot, update.message.from_user.id,update.message.chat_id):
+#         cursor.execute(f'''SELECT {T_ROUND['FIELDS']['STARTS_AT']} FROM {T_ROUND['NAME']} \
+#         WHERE {T_ROUND['FIELDS']['GROUP_ID']}={update.message.chat_id} AND {T_ROUND['FIELDS']['STARTS_AT']}>{dt_now}''')
+#         data = cursor.fetchone()
+#         if data:
+#             delete_next_round(update, job_queue)
+#         else:
+#             job_queue.run_once(delete_next_round, (dt_now + timedelta(seconds=ROUND_TIME)), context=[update.message.chat_id, job_queue], name='planned deletion of next round')
+#     else:
+#         bot.sendMessage(update.message.chat_id, texts.PERMISSION_ERROR)
+#     conn.close()
 
 def setup():
     logging.basicConfig(level=logging.WARNING)
@@ -759,6 +792,7 @@ def setup():
     j = updater.job_queue
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("setup", new_group_setup, pass_args=True, pass_job_queue=True))
+    # dp.add_handler(CommandHandler("stop", stop_future_rounds, pass_job_queue=True))
     dp.add_handler(CommandHandler("help", help))
     dp.add_handler(CommandHandler("nextround", get_next_round_time))
     dp.add_handler(CommandHandler("check", check_engagement, pass_job_queue=True))
