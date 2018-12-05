@@ -672,8 +672,8 @@ def get_links_to_check(api, insta_handle, participating_insta_links):
                 user_comments = getComments(api, post_id)
                 if not insta_handle in user_comments:
                     comment_missing.append(user)
-                list.append(x for x in likers_missing)
-                list.append(x for x in comment_missing)
+                list.append(str(x) for x in likers_missing)
+                list.append(str(x) for x in comment_missing)
                 sleep(1.75)
             except Exception as e:
                 logger.exception(e)
