@@ -734,6 +734,7 @@ def check_engagement(bot, update, job_queue):
             logger.warning(f'PARTICIPATING INSTA LINKS ARE: {participating_insta_links}')
 
             check_result = get_links_to_check(api, insta_handle, participating_insta_links)
+            logger.info(f'{insta_handle} CHECK_RESULT: {check_result}')
 
 
             if check_result:
