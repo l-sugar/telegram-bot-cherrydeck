@@ -6,10 +6,10 @@ TOKEN = os.getenv('TG_TOKEN')  # restart the main script MANUALLY after this fie
 ADMIN_PASSWORD = os.getenv('ADMIN_PW')  # to use special bot commands
 
 # GROUPS
-CHAT_GROUP = os.getenv('TG_CHAT_GROUP')
+CHAT_GROUP = os.getenv('TG_CHAT')
 
 # INSTA_CREDENTIALS
-INSTA_USERNAME = os.getenv('INSTA_USER')
+INSTA_USERNAME = os.getenv('INSTA_HANDLE')
 INSTA_PASSWORD = os.getenv('INSTA_PW')
 
 # TIMES
