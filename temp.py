@@ -1,3 +1,11 @@
+def handle_from_link(link):
+    match = re.search('nstagram.com/[^/?]+', link)
+    username = match.group().rsplit('/', maxsplit=1)[-1]
+    return username
+
+
+
+
 def delete_check_message(bot, job):
     try:
         if is_admin(bot, job.context[2], job.context[0]):

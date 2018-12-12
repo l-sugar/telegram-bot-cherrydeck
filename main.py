@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
 import re
-import sqlite3
 import psycopg2
 import psycopg2.extras
 
@@ -26,16 +25,6 @@ sleep_time = 0.25
 insta_user_pattern = re.compile(r'^([hH]ttp)?s?(://)?([wW]ww.)?[iI]nstagram.com/[^/][^p/].*?/?$')
 
 times = {}  # {group_tg_id: closest round_start start timestamp}
-
-
-# TODO если надо будет обновлять конфиг в лайве
-# class Identity(pyinotify.ProcessEvent):
-#     def process_default(self, event):
-#         if event.name.lower() == CONFIG_NAME.lower():
-#             logger.info('Config has been modified')
-#             importlib.reload(config)
-#             logger.info('Config has been reloaded')
-
 
 def async1(f):
     def wrapper(*args, **kwargs):
@@ -77,12 +66,12 @@ def echo(bot, update):
         logger.info(f'start: {start}, now: {now}, end: {end}')
         if start < now < end:
             if update.message.from_user.username:
-                add_to_next_round(update.message.from_user.username, update.message.chat.id, text,
-                                  update.message.from_user.id, update.message.from_user.full_name)
+                tg_name = update.message.from_user.username
             else:
-                add_to_next_round(NULL, update.message.chat.id, text,
-                                  update.message.from_user.id, update.message.from_user.full_name)
+                tg_name = None
             #bot.sendMessage(update.message.chat_id, texts.LINK_ADDED)
+            add_to_next_round(tg_name, update.message.chat.id, text,
+                              update.message.from_user.id, update.message.from_user.full_name)
 
         else:
             bot.delete_message(chat_id=update.message.chat.id, message_id=update.message.message_id)
@@ -115,13 +104,13 @@ def add_to_next_round(tg_name, chatid, insta_link, userid, fullname):
     cursor = conn.cursor()
     cursor.execute(f'''SELECT * from {T_USER['NAME']} where {T_USER['FIELDS']['USER_ID']}=%s''', (userid,))
     data = cursor.fetchall()
-    if not data:  # если пользователя нет в таблице users, добавляем
+    if not data:
         query = f'''INSERT INTO {T_USER['NAME']} ({T_USER['FIELDS']['TG_NAME']}, {T_USER['FIELDS']['INSTA_LINK']}, \
         {T_USER['FIELDS']['USER_ID']}, {T_USER['FIELDS']['FULL_NAME']}) VALUES (%s, %s, %s, %s)'''
         cursor.execute(query, (tg_name, insta_link, userid, fullname))
         conn.commit()
         logger.info(f'{insta_link} inserted')
-    else:  # если есть - обновляем ссылку на инсту
+    else:
         query = f'''UPDATE {T_USER['NAME']} SET {T_USER['FIELDS']['INSTA_LINK']}=%s, {T_USER['FIELDS']['FULL_NAME']}=%s \
                                             WHERE {T_USER['FIELDS']['USER_ID']}=%s'''
         cursor.execute(query, (insta_link, fullname, userid))
@@ -135,7 +124,7 @@ def add_to_next_round(tg_name, chatid, insta_link, userid, fullname):
     AND {T_ROUND['FIELDS']['IS_FINISHED']}=False ORDER BY id ASC LIMIT 1)'''
     cursor.execute(query, (fullname, chatid))
     data = cursor.fetchall()
-    if not data:  # если пользователь не связан с раундом
+    if not data:
         query = f'''INSERT INTO {T_U_R['NAME']} VALUES ((select id from {T_USER['NAME']} \
         where {T_USER['FIELDS']['USER_ID']}=%s ORDER BY id asc limit 1), \
         (SELECT id from {T_ROUND['NAME']} WHERE {T_ROUND['FIELDS']['GROUP_ID']}=%s \
@@ -564,23 +553,19 @@ def plan_all_round_jobs(job_queue):
         # print(group[0])
         t = get_next_start_time(group[0])
         if t:
-            dt = datetime.fromtimestamp(t)
-            job_queue.run_once(round_start, dt, context=[group[0], job_queue], name=f'round_start {group[0]}')
-            logger.info(f'Jobs for group {group[0]} added at {dt}')
-            jobs = job_queue.jobs()
-            for i in jobs:
-                logger.warning(f'Job planned: {i.name}')
+            global times
+            if group[0] in times:
+                if times[group[0]] == t:
+                    continue
 
+            dt = datetime.fromtimestamp(t)
             drop_window_start = dt - timedelta(seconds=DROP_WINDOW)
             drop_announce_time = dt - timedelta(seconds=(DROP_WINDOW + DROP_ANNOUNCE))
-            job_queue.run_once(drop_soon_announce, drop_announce_time, context=group[0], name=f'Drop announcement for group {group[0]}')
-            job_queue.run_once(drop_window, drop_window_start, context=[group[0], job_queue],
-                               name=f'Drop window for group {group[0]}')
-            logger.info(f'Jobs for group {group[0]} added at {drop_window_start}')
-            jobs = job_queue.jobs()
-            for i in jobs:
-                logger.warning(f'Job planned: {i.name}')
 
+            job_queue.run_once(round_start, dt, context=[group[0], job_queue], name=f'round_start {group[0]}')
+            job_queue.run_once(drop_soon_announce, drop_announce_time, context=group[0], name=f'Drop announcement for group {group[0]}')
+            job_queue.run_once(drop_window, drop_window_start, context=[group[0], job_queue], name=f'Drop window for group {group[0]}')
+            logger.info(f'Next drop & round for group {group[0]} added at {drop_window_start}')
             add_to_times(group[0])
             logger.info(f'Queue: {job_queue.jobs()}')
 
@@ -629,59 +614,46 @@ def get_next_round_time(bot, update):
     bot.sendMessage(update.message.chat_id, message)
     logger.info(f'Round time sent: {t}')
 
-@async1
 def delete_check_message(bot, job):
-    try:
-        if is_admin(bot, job.context[2], job.context[0]):
-            logger.warning(f'cannot delete check message from admin in {job.context[0]}')
-        else:
-            bot.delete_message(chat_id=job.context[0], message_id=job.context[1])
-            logger.info(f'check message deleted in {job.context[0]}')
-    except Exception as e:
-        logger.exception(e)
-
-@async1
-def delete_bot_message(bot, job):
-    try:
         bot.delete_message(chat_id=job.context[0], message_id=job.context[1])
-        logger.info(f'check response deleted in {job.context[0]}')
-    except Exception as e:
-        logger.exception(e)
+        logger.info(f'check message deleted in {job.context[0]}')
 
-def get_links_to_check(api, insta_handle, participating_insta_links):
-    handles = usernames_from_links(participating_insta_links)
-
-    logger.info(f'{insta_handle} started manual check')
-    list = []
-    likers_missing = []
-    comment_missing = []
-    for user in handles:
-        if user == insta_handle:
-            continue
-        else:
-            logger.warning(f'{user} insta-check started')
-            api.searchUsername(user)
-            id = str(api.LastJson.get('user', "").get("pk", ""))
-            api.getUserFeed(id)
-            post_id = str(api.LastJson.get('items', "")[0].get("pk", ""))
-            api.getMediaLikers(post_id)
-            likers_handles = []
-            for i in api.LastJson['users']:
-                likers_handles.append(str(i.get('username', "")))
-            if not insta_handle in likers_handles:
-                likers_missing.append(user)
-            user_comments = getComments(api, post_id)
-            if not insta_handle in user_comments:
-                comment_missing.append(user)
-            for i in likers_missing:
-                list.append(str(i))
-            for j in comment_missing:
-                list.append(str(j))
-            sleep(1.75)
-    logger.info(f'{insta_handle} LIKES MISSING: {likers_missing}')
-    logger.info(f'{insta_handle} COMMENTS MISSING: {comment_missing}')
-    logger.info(f'{insta_handle} LIST TO CHECK: {list}')
-    return list
+# def get_links_to_check(api, insta_handle, participating_insta_links):
+#     handles = usernames_from_links(participating_insta_links)
+#
+#     logger.info(f'{insta_handle} started manual check')
+#     list = []
+#     likers_missing = []
+#     comment_missing = []
+#
+#     api.login()
+#     for user in handles:
+#         if user == insta_handle:
+#             continue
+#         else:
+#             logger.warning(f'{insta_handle} : {user} insta-check started')
+#             api.searchUsername(user)
+#             id = str(api.LastJson.get('user', "").get("pk", ""))
+#             api.getUserFeed(id)
+#             post_id = str(api.LastJson.get('items', "")[0].get("pk", ""))
+#             api.getMediaLikers(post_id)
+#             likers_handles = []
+#             for i in api.LastJson['users']:
+#                 likers_handles.append(str(i.get('username', "")))
+#             if not insta_handle in likers_handles:
+#                 likers_missing.append(user)
+#             else:
+#                 user_comments = getComments(api, post_id)
+#                 if not insta_handle in user_comments:
+#                     comment_missing.append(user)
+#             for i in likers_missing:
+#                 list.append(str(i))
+#             for j in comment_missing:
+#                 list.append(str(j))
+#             sleep(1.75)
+#     logger.info(f'{insta_handle} LIKES MISSING: {likers_missing}')
+#     logger.info(f'{insta_handle} COMMENTS MISSING: {comment_missing}')
+#     return list
 
 
 
@@ -699,11 +671,11 @@ def check_engagement(bot, update, job_queue):
 
         cursor.execute(f'''SELECT {T_USER['FIELDS']['INSTA_LINK']} FROM {T_USER['NAME']} \
         WHERE {T_USER['FIELDS']['USER_ID']}={update.message.from_user.id}''')
-        data = cursor.fetchone()[0]
+        data = cursor.fetchone()
 
         if data:
 
-            insta_handle = handle_from_link(str(data))
+            insta_handle = handle_from_link(str(data[0]))
 
             logger.info(f'Received /check command from {insta_handle}')
             cursor.execute(f'''SELECT {T_USER['FIELDS']['TG_NAME']} FROM {T_USER['NAME']} \
@@ -729,19 +701,56 @@ def check_engagement(bot, update, job_queue):
                     participating_insta_links.append(str(j))
             logger.warning(f'PARTICIPATING INSTA LINKS ARE: {participating_insta_links}')
 
-            check_result = get_links_to_check(api, insta_handle, participating_insta_links)
-            logger.info(f'{insta_handle} CHECK_RESULT: {check_result}')
 
+            handles = usernames_from_links(participating_insta_links)
 
-            if check_result:
-                if len(check_result) > 1:
-                    list_to_check = '\nwww.instagram.com/' + '\nwww.instagram.com/'.join(check_result)
+            logger.info(f'{insta_handle} started manual check')
+            output_list = []
+            likers_missing = []
+            comment_missing = []
+
+            for user in handles:
+                if user == insta_handle:
+                    continue
                 else:
-                    list_to_check = '\nwww.instagram.com/' + check_result[0]
+                    logger.warning(f'{insta_handle} : {user} insta-check started')
+                    api.searchUsername(user)
+                    id = str(api.LastJson.get('user', "").get("pk", ""))
+                    api.getUserFeed(id)
+                    post_id = str(api.LastJson.get('items', "")[0].get("pk", ""))
+                    api.getMediaLikers(post_id)
+                    likers_handles = []
+                    for i in api.LastJson['users']:
+                        likers_handles.append(str(i.get('username', "")))
+                    if insta_handle not in likers_handles:
+                        likers_missing.append(user)
+                    else:
+                        user_comments = getComments(api, post_id)
+                        if insta_handle not in user_comments:
+                            comment_missing.append(user)
+                    for i in likers_missing:
+                        if i not in output_list:
+                            output_list.append(str(i))
+                    for j in comment_missing:
+                        if j not in output_list:
+                            output_list.append(str(j))
+                    sleep(1.75)
+
+            logger.info(f'{insta_handle} LIKES MISSING: {likers_missing}')
+            logger.info(f'{insta_handle} COMMENTS MISSING: {comment_missing}')
+
+            logger.info(f'{insta_handle} CHECK_RESULT: {output_list}')
+
+
+            if output_list:
+                if len(output_list) > 1:
+                    list_to_check = '\nwww.instagram.com/' + '\nwww.instagram.com/'.join(output_list)
+                else:
+                    list_to_check = '\nwww.instagram.com/' + output_list[0]
 
                 check_message = name + '\ncheck these users:\n' + list_to_check
 
-                logger_check_list = ' '.join(check_result)
+                logger_check_list = ' '.join(output_list)
                 logger.info(f'{insta_handle} engagements missing: {logger_check_list}')
 
             else:
@@ -749,9 +758,9 @@ def check_engagement(bot, update, job_queue):
 
             check_response = bot.sendMessage(update.message.chat_id, check_message, reply_to_message_id=update.message.message_id, disable_web_page_preview=True)
 
-            time_of_deletion = datetime.now() + timedelta(seconds=60)
-            job_queue.run_once(delete_bot_message, time_of_deletion, context=[check_response.chat_id, check_response.message_id], name='delete check response from bot')
+            time_of_deletion = datetime.now() + timedelta(seconds=150)
             job_queue.run_once(delete_check_message, time_of_deletion, context=[update.message.chat_id, update.message.message_id, update.message.from_user.id], name='delete check message from user')
+            job_queue.run_once(delete_check_message, time_of_deletion, context=[check_response.chat_id, check_response.message_id], name='delete check response from bot')
 
         else:
             bot.delete_message(chat_id=update.message.chat_id, message_id=update.message.message_id)
@@ -773,7 +782,7 @@ def check_engagement(bot, update, job_queue):
 #     logger.info(f'future rounds deleted: {update.message.chat_id}')
 #     conn.close()
 #
-#
+# @async1
 # def stop_future_rounds(bot, update, job_queue):
 #     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
 #     cursor = conn.cursor()
