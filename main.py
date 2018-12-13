@@ -492,9 +492,10 @@ def end_and_plan_next(bot, cont):
 def round_start(bot, job):
     # job.context[1] = job_queue
     logger.warning('Round started')
-    t = times[job.context[0]]
+    chat_id = job.context[0]
+    t = times[chat_id]
     logger.warning(f'Time: {t}')
-    links = get_round_links(t)
+    links = get_round_links(t, chat_id)
 
     if links:
         links = [x[0] for x in links]
@@ -526,12 +527,13 @@ def round_start(bot, job):
             logger.warning(f'Job planned: {i.name}')
 
 
-def get_round_links(time):
+def get_round_links(time, chat_id):
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
     cursor.execute(f'''select {T_USER['FIELDS']['INSTA_LINK']} from {T_USER['NAME']} \
     where id in (select {T_U_R['FIELDS']['USER_ID']} from {T_U_R['NAME']} where {T_U_R['FIELDS']['ROUND_ID']}=(select id from {T_ROUND['NAME']} \
-    where {T_ROUND['FIELDS']['STARTS_AT']}={time}))''')
+    where {T_ROUND['FIELDS']['STARTS_AT']}={time} AND \
+    {T_ROUND['FIELDS']['GROUP_ID']}={chat_id}))''')
     data = cursor.fetchall()
     conn.close()
     return data
