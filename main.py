@@ -685,103 +685,115 @@ def check_engagement(bot, update, job_queue):
 
     if data:
 
-        cursor.execute(f'''SELECT {T_USER['FIELDS']['INSTA_LINK']} FROM {T_USER['NAME']} \
-        WHERE {T_USER['FIELDS']['USER_ID']}={user_id}''')
+        cursor.execute(f'''SELECT * FROM {T_U_R['NAME']} WHERE {T_U_R['FIELDS']['ROUND_ID']} IN \
+        (SELECT id FROM {T_ROUND['NAME']} WHERE {T_ROUND['FIELDS']['GROUP_ID']}={chat_id} AND \
+        {T_ROUND['FIELDS']['IN_PROGRESS']}=True) AND \
+        {T_U_R['FIELDS']['USER_ID']} IN (SELECT id FROM {T_USER['NAME']} WHERE \
+        {T_USER['FIELDS']['USER_ID']}={user_id})''')
         data = cursor.fetchone()
 
         if data:
 
-            insta_handle = handle_from_link(str(data[0]))
-
-            logger.info(f'{chat_id}: Received /check command from {insta_handle}')
-            cursor.execute(f'''SELECT {T_USER['FIELDS']['TG_NAME']} FROM {T_USER['NAME']} \
-            WHERE {T_USER['FIELDS']['USER_ID']}={user_id}''')
-            data = cursor.fetchone()[0]
-            if data:
-                name = '@' + str(data)
-            else:
-                cursor.execute(f'''SELECT {T_USER['FIELDS']['FULL_NAME']} FROM {T_USER['NAME']} \
-                WHERE {T_USER['FIELDS']['USER_ID']}={user_id}''')
-                name = str(cursor.fetchone()[0])
-
             cursor.execute(f'''SELECT {T_USER['FIELDS']['INSTA_LINK']} FROM {T_USER['NAME']} \
-            WHERE id IN (SELECT {T_U_R['FIELDS']['USER_ID']} FROM {T_U_R['NAME']} \
-            WHERE {T_U_R['FIELDS']['ROUND_ID']} IN (SELECT id FROM {T_ROUND['NAME']} \
-            WHERE {T_ROUND['FIELDS']['GROUP_ID']}={chat_id} \
-            AND {T_ROUND['FIELDS']['IN_PROGRESS']}=True))''')
-            data = cursor.fetchall()
-            participating_insta_links = []
+            WHERE {T_USER['FIELDS']['USER_ID']}={user_id}''')
+            data = cursor.fetchone()
 
-            for i in data:
-                for j in i:
-                    participating_insta_links.append(str(j))
-            logger.warning(f'{chat_id}: PARTICIPATING INSTA LINKS ARE: {participating_insta_links}')
+            if data:
 
+                insta_handle = handle_from_link(str(data[0]))
 
-            handles = usernames_from_links(participating_insta_links)
-
-            logger.info(f'{chat_id}: manual check started by {insta_handle}')
-            output_list = []
-            likers_missing = []
-            comment_missing = []
-
-            for user in handles:
-                if user == insta_handle:
-                    continue
+                logger.info(f'{chat_id}: Received /check command from {insta_handle}')
+                cursor.execute(f'''SELECT {T_USER['FIELDS']['TG_NAME']} FROM {T_USER['NAME']} \
+                WHERE {T_USER['FIELDS']['USER_ID']}={user_id}''')
+                data = cursor.fetchone()[0]
+                if data:
+                    name = '@' + str(data)
                 else:
-                    logger.warning(f'{chat_id}: {insta_handle} : {user} insta-check started')
-                    api.searchUsername(user)
-                    id = str(api.LastJson.get('user', "").get("pk", ""))
-                    api.getUserFeed(id)
-                    post_id = str(api.LastJson.get('items', "")[0].get("pk", ""))
-                    api.getMediaLikers(post_id)
-                    likers_handles = []
-                    for i in api.LastJson['users']:
-                        likers_handles.append(str(i.get('username', "")))
-                    if insta_handle not in likers_handles:
-                        likers_missing.append(user)
+                    cursor.execute(f'''SELECT {T_USER['FIELDS']['FULL_NAME']} FROM {T_USER['NAME']} \
+                    WHERE {T_USER['FIELDS']['USER_ID']}={user_id}''')
+                    name = str(cursor.fetchone()[0])
+
+                cursor.execute(f'''SELECT {T_USER['FIELDS']['INSTA_LINK']} FROM {T_USER['NAME']} \
+                WHERE id IN (SELECT {T_U_R['FIELDS']['USER_ID']} FROM {T_U_R['NAME']} \
+                WHERE {T_U_R['FIELDS']['ROUND_ID']} IN (SELECT id FROM {T_ROUND['NAME']} \
+                WHERE {T_ROUND['FIELDS']['GROUP_ID']}={chat_id} \
+                AND {T_ROUND['FIELDS']['IN_PROGRESS']}=True))''')
+                data = cursor.fetchall()
+                participating_insta_links = []
+
+                for i in data:
+                    for j in i:
+                        participating_insta_links.append(str(j))
+                logger.warning(f'{chat_id}: PARTICIPATING INSTA LINKS ARE: {participating_insta_links}')
+
+
+                handles = usernames_from_links(participating_insta_links)
+
+                logger.info(f'{chat_id}: manual check started by {insta_handle}')
+                output_list = []
+                likers_missing = []
+                comment_missing = []
+
+                for user in handles:
+                    if user == insta_handle:
+                        continue
                     else:
-                        user_comments = getComments(api, post_id)
-                        if insta_handle not in user_comments:
-                            comment_missing.append(user)
-                    for i in likers_missing:
-                        if i not in output_list:
-                            output_list.append(str(i))
-                    for j in comment_missing:
-                        if j not in output_list:
-                            output_list.append(str(j))
-                    sleep(1.75)
+                        logger.warning(f'{chat_id}: {insta_handle} : {user} insta-check started')
+                        api.searchUsername(user)
+                        id = str(api.LastJson.get('user', "").get("pk", ""))
+                        api.getUserFeed(id)
+                        post_id = str(api.LastJson.get('items', "")[0].get("pk", ""))
+                        api.getMediaLikers(post_id)
+                        likers_handles = []
+                        for i in api.LastJson['users']:
+                            likers_handles.append(str(i.get('username', "")))
+                        if insta_handle not in likers_handles:
+                            likers_missing.append(user)
+                        else:
+                            user_comments = getComments(api, post_id)
+                            if insta_handle not in user_comments:
+                                comment_missing.append(user)
+                        for i in likers_missing:
+                            if i not in output_list:
+                                output_list.append(str(i))
+                        for j in comment_missing:
+                            if j not in output_list:
+                                output_list.append(str(j))
+                        sleep(1.75)
 
-            logger.info(f'{chat_id}: {insta_handle} LIKES MISSING: {likers_missing}')
-            logger.info(f'{chat_id}: {insta_handle} COMMENTS MISSING: {comment_missing}')
+                logger.info(f'{chat_id}: {insta_handle} LIKES MISSING: {likers_missing}')
+                logger.info(f'{chat_id}: {insta_handle} COMMENTS MISSING: {comment_missing}')
 
-            logger.info(f'{chat_id}: {insta_handle} CHECK_RESULT: {output_list}')
+                logger.info(f'{chat_id}: {insta_handle} CHECK_RESULT: {output_list}')
 
 
-            if output_list:
-                if len(output_list) > 1:
-                    list_to_check = '\nwww.instagram.com/' + '\nwww.instagram.com/'.join(output_list)
+                if output_list:
+                    if len(output_list) > 1:
+                        list_to_check = '\nwww.instagram.com/' + '\nwww.instagram.com/'.join(output_list)
+                    else:
+                        list_to_check = '\nwww.instagram.com/' + output_list[0]
+
+                    check_message = name + '\ncheck these users:\n' + list_to_check
+
+                    logger_check_list = ' '.join(output_list)
+                    logger.info(f'{chat_id}: {insta_handle} engagements missing: {logger_check_list}')
+
                 else:
-                    list_to_check = '\nwww.instagram.com/' + output_list[0]
+                    check_message = name + '\nyou engaged with everyone participating so far, great work!'
 
-                check_message = name + '\ncheck these users:\n' + list_to_check
+                check_response = bot.sendMessage(chat_id, check_message, reply_to_message_id=update.message.message_id, disable_web_page_preview=True)
 
-                logger_check_list = ' '.join(output_list)
-                logger.info(f'{chat_id}: {insta_handle} engagements missing: {logger_check_list}')
+                time_of_deletion = datetime.now() + timedelta(seconds=150)
+                job_queue.run_once(delete_check_message, time_of_deletion, context=[chat_id, update.message.message_id, user_id], name='delete check message from user')
+                job_queue.run_once(delete_check_message, time_of_deletion, context=[chat_id, check_response.message_id], name='delete check response from bot')
 
             else:
-                check_message = name + '\nyou engaged with everyone participating so far, great work!'
-
-            check_response = bot.sendMessage(chat_id, check_message, reply_to_message_id=update.message.message_id, disable_web_page_preview=True)
-
-            time_of_deletion = datetime.now() + timedelta(seconds=150)
-            job_queue.run_once(delete_check_message, time_of_deletion, context=[chat_id, update.message.message_id, user_id], name='delete check message from user')
-            job_queue.run_once(delete_check_message, time_of_deletion, context=[chat_id, check_response.message_id], name='delete check response from bot')
+                bot.delete_message(chat_id=update.message.chat_id, message_id=update.message.message_id)
+                logger.info(f'{chat_id}: deleted /check message from non-participating user')
+                bot.sendMessage(chat_id, 'The /check command is only available for participants of the drop')
 
         else:
-            bot.delete_message(chat_id=update.message.chat_id, message_id=update.message.message_id)
-            logger.info(f'{chat_id}: deleted /check message from non-participating user')
-            bot.sendMessage(chat_id, 'The /check command is only available for participants of the drop')
+            bot.sendMessage(chat_id, 'You are not participating in this round. Please make sure you posted the check command to the correct group.', reply_to_message_id=update.message.message_id)
     else:
         bot.sendMessage(chat_id, 'The /check command only works when a round is in progress.')
     conn.close()
