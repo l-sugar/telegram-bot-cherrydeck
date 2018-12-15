@@ -47,10 +47,10 @@ def echo(bot, update):
     logging.info('Received: {}'.format(text))
     if not re.match(insta_user_pattern, text):
         if is_admin(bot, update.message.from_user.id, update.message.chat_id):
-            logger.info("{}'s (admin) message has been passed".format(update.message.from_user.id))
+            logger.info(f'{update.message.chat_id}: {update.message.from_user.id}s (admin) message has been passed')
         else:
             bot.delete_message(chat_id=update.message.chat.id, message_id=update.message.message_id)
-            logger.info('Message has been deleted: {}'.format(text))
+            logger.info(f'{update.message.chat_id}: Message has been deleted: {text}')
             bot.sendMessage(update.message.chat.id, texts.MESSAGE_DELETED + CHAT_GROUP, disable_web_page_preview=True)
     else:
         if update.message.chat_id not in times:
@@ -63,7 +63,7 @@ def echo(bot, update):
         end = datetime.fromtimestamp(times[update.message.chat_id])  # drop window end
         now = datetime.now()
 
-        logger.info(f'start: {start}, now: {now}, end: {end}')
+        logger.info(f'{update.message.chat_id}: start: {start}, now: {now}, end: {end}')
         if start < now < end:
             if update.message.from_user.username:
                 tg_name = update.message.from_user.username
@@ -75,7 +75,7 @@ def echo(bot, update):
 
         else:
             bot.delete_message(chat_id=update.message.chat.id, message_id=update.message.message_id)
-            logger.info('Wrong time. Message has been deleted: {}'.format(text))
+            logger.info(f'{update.message.chat_id}: Wrong time. Message has been deleted: {text}')
 
 
 def usernames_from_links(arr):
@@ -99,7 +99,7 @@ def handle_from_link(link):
     return username
 
 # @async1
-def add_to_next_round(tg_name, chatid, insta_link, userid, fullname):
+def add_to_next_round(tg_name, chat_id, insta_link, userid, fullname):
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
     cursor.execute(f'''SELECT * from {T_USER['NAME']} where {T_USER['FIELDS']['USER_ID']}=%s''', (userid,))
@@ -109,40 +109,40 @@ def add_to_next_round(tg_name, chatid, insta_link, userid, fullname):
         {T_USER['FIELDS']['USER_ID']}, {T_USER['FIELDS']['FULL_NAME']}) VALUES (%s, %s, %s, %s)'''
         cursor.execute(query, (tg_name, insta_link, userid, fullname))
         conn.commit()
-        logger.info(f'{insta_link} inserted')
+        logger.info(f'{chat_id}: {insta_link} inserted into round')
     else:
         query = f'''UPDATE {T_USER['NAME']} SET {T_USER['FIELDS']['INSTA_LINK']}=%s, {T_USER['FIELDS']['FULL_NAME']}=%s \
                                             WHERE {T_USER['FIELDS']['USER_ID']}=%s'''
         cursor.execute(query, (insta_link, fullname, userid))
         conn.commit()
-        logger.info(f'{insta_link} changed')
+        logger.info(f'{chat_id}: {insta_link} changed')
 
     query = f'''SELECT * from {T_U_R['NAME']} WHERE {T_U_R['FIELDS']['USER_ID']}\
     =(SELECT id from {T_USER['NAME']} where {T_USER['FIELDS']['FULL_NAME']}=%s LIMIT 1)\
     AND {T_U_R['FIELDS']['ROUND_ID']}\
     =(SELECT id from {T_ROUND['NAME']} WHERE {T_ROUND['FIELDS']['GROUP_ID']}=%s \
-    AND {T_ROUND['FIELDS']['IS_FINISHED']}=False ORDER BY id ASC LIMIT 1)'''
-    cursor.execute(query, (fullname, chatid))
+    AND {T_ROUND['FIELDS']['IS_FINISHED']}=False ORDER BY id DESC LIMIT 1)'''
+    cursor.execute(query, (fullname, chat_id))
     data = cursor.fetchall()
     if not data:
         query = f'''INSERT INTO {T_U_R['NAME']} VALUES ((select id from {T_USER['NAME']} \
         where {T_USER['FIELDS']['USER_ID']}=%s ORDER BY id asc limit 1), \
         (SELECT id from {T_ROUND['NAME']} WHERE {T_ROUND['FIELDS']['GROUP_ID']}=%s \
         AND {T_ROUND['FIELDS']['IS_FINISHED']}=False ORDER BY id ASC LIMIT 1))'''
-        cursor.execute(query, (userid, chatid))  # creates new round_start
+        cursor.execute(query, (userid, chat_id))  # creates new round_start
         conn.commit()
-        logger.info('Record added')
+        logger.info(f'{chat_id}: Record added')
     conn.close()
 
 
-def get_next_start_time(chatid):
+def get_next_start_time(chat_id):
     dt_now = datetime.now().timestamp()
 
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
     query = f'''SELECT {T_ROUND['FIELDS']['STARTS_AT']} from {T_ROUND['NAME']} WHERE {T_ROUND['FIELDS']['GROUP_ID']}=%s \
     AND {T_ROUND['FIELDS']['IS_FINISHED']}=False and {T_ROUND['FIELDS']['STARTS_AT']}>{dt_now} ORDER BY id ASC LIMIT 1'''
-    cursor.execute(query, (chatid,))
+    cursor.execute(query, (chat_id,))
     data = cursor.fetchall()
     conn.close()
     if data:
@@ -151,14 +151,14 @@ def get_next_start_time(chatid):
 
 
 @async1
-def add_to_times(chatid):
+def add_to_times(chat_id):
     global times
-    data = get_next_start_time(chatid)
-    logger.info(f'Adding to times: {chatid}')
+    data = get_next_start_time(chat_id)
+    logger.info(f'Adding to times: {chat_id}')
     # print(data)
     if data:
         # print(data)
-        times[chatid] = data
+        times[chat_id] = data
         logger.warning(f'Times: {times}')
         return data
     return None
@@ -187,6 +187,8 @@ def getComments(api, post_id):
 
 def gather(api, userList):
     global_mas = []
+    # global_mas = [global_mas[tmp[likers][user_comments]]]
+    # access spec liker: global_mas[0][0][0]
     likers = []
     try:
         for user in userList:
@@ -237,8 +239,8 @@ def check(res, users):
 #         logger.info('Welcome message sent')
 
 
-def is_admin(bot, userid, chatid):
-    admins = [admin.user.id for admin in bot.get_chat_administrators(chatid)]
+def is_admin(bot, userid, chat_id):
+    admins = [admin.user.id for admin in bot.get_chat_administrators(chat_id)]
     return userid in admins
 
 
@@ -251,18 +253,20 @@ def new_group_setup(bot, update, args, job_queue):
                     WHERE {T_ROUND['FIELDS']['IN_PROGRESS']}=True and {T_ROUND['FIELDS']['GROUP_ID']} = {update.message.chat.id}''')
     data = cursor.fetchall()
     conn.close()
+
+    chat_id = update.message.chat.id
     if data:
-        bot.sendMessage(update.message.chat.id, texts.ROUND_ALREADY_SET)
-        logger.info("There's a round for this group in progress right now")
+        bot.sendMessage(chat_id, texts.ROUND_ALREADY_SET)
+        logger.info(f'{chat_id}: There is a round for this group in progress right now')
         return
     else:
         logger.warning('/setup ' + str(args))
         if not args:
-            bot.sendMessage(update.message.chat.id, texts.SETUP_MISSING_TIME)
+            bot.sendMessage(chat_id, texts.SETUP_MISSING_TIME)
             return
 
-        if not is_admin(bot, update.message.from_user.id, update.message.chat_id):
-            bot.sendMessage(update.message.chat.id, texts.PERMISSION_ERROR)
+        if not is_admin(bot, update.message.from_user.id, chat_id):
+            bot.sendMessage(chat_id, texts.PERMISSION_ERROR)
             return
 
         time = args[0]
@@ -281,7 +285,7 @@ def new_group_setup(bot, update, args, job_queue):
                 raise Exception
         except Exception as e:
             logger.exception(e)
-            bot.sendMessage(update.message.chat.id, texts.BAD_TIME_FORMAT)
+            bot.sendMessage(chat_id, texts.BAD_TIME_FORMAT)
         else:
             next_round_starts = dt.timestamp()
 
@@ -290,23 +294,23 @@ def new_group_setup(bot, update, args, job_queue):
 
             dt_now = datetime.now().timestamp()
             cursor.execute(f'''select * from {T_ROUND['NAME']} where {T_ROUND['FIELDS']['STARTS_AT']}>{dt_now} \
-            and {T_ROUND['FIELDS']['GROUP_ID']}={update.message.chat_id}''')
+            and {T_ROUND['FIELDS']['GROUP_ID']}={chat_id}''')
             data = cursor.fetchall()
             if not data:
                 query = f'''INSERT INTO {T_ROUND['NAME']} ({T_ROUND['FIELDS']['STARTS_AT']}, \
                 {T_ROUND['FIELDS']['GROUP_ID']}) VALUES (%s, %s)'''
-                cursor.execute(query, (next_round_starts, update.message.chat_id))  # creates new round_start
+                cursor.execute(query, (next_round_starts, chat_id))  # creates new round_start
                 conn.commit()
                 #bot.sendMessage(update.message.chat.id, texts.SETUP_SUCCESS)
-                logger.info(f'New round set to {args}')
+                logger.info(f'{chat_id}: New round set to {args}')
 
                 plan_all_round_jobs(job_queue)
                 jobs = job_queue.jobs()
                 for i in jobs:
-                    logger.warning(f'Job planned: {i.name}')
+                    logger.warning(f'Job planned: {i.name} for group {chat_id}')
             else:
                 bot.sendMessage(update.message.chat.id, texts.ROUND_ALREADY_SET)
-                logger.info("There's a round for this group in the future")
+                logger.info(f'{chat_id}: There is a round for this group in the future')
             conn.close()
 
 def drop_window(bot, job):
@@ -314,34 +318,35 @@ def drop_window(bot, job):
     cursor = conn.cursor()
 
     dt_now = datetime.now().timestamp()
-    chatid = job.context[0]
+    chat_id = job.context[0]
     job_queue = job.context[1]
 
     cursor.execute(f'''update {T_ROUND['NAME']} SET {T_ROUND['FIELDS']['IN_PROGRESS']}=True \
     WHERE {T_ROUND['FIELDS']['STARTS_AT']} > {dt_now} \
-    AND {T_ROUND['FIELDS']['GROUP_ID']} = {job.context[0]}''')
+    AND {T_ROUND['FIELDS']['GROUP_ID']} = {chat_id}''')
     conn.commit()
     conn.close()
 
     logger.warning('Drop window started')
-    bot.sendMessage(chatid, texts.GIMME_UR_LINKS, disable_web_page_preview=True)
-    logger.info(f'Drop window started: {job.context[0]}')
+    bot.sendMessage(chat_id, texts.GIMME_UR_LINKS, disable_web_page_preview=True)
+    logger.info(f'Drop window started: {chat_id}')
 
-    job_queue.run_once(drop_alert, (DROP_ENDS_SOON), context=chatid, name='plan drop_alert')
+    job_queue.run_once(drop_alert, (DROP_ENDS_SOON), context=chat_id, name='plan drop_alert')
     jobs = job_queue.jobs()
     for i in jobs:
-        logger.warning(f'Job planned: {i.name}')
+        logger.warning(f'Job planned: {i.name} for group {chat_id}')
 
 
 @async1
 def drop_alert(bot, job):
-    bot.sendMessage(job.context, texts.DROP_ALMOST_OVER)
-    logger.warning('drop_alert sent')
+    chat_id = job.context
+    bot.sendMessage(chat_id, texts.DROP_ALMOST_OVER)
+    logger.warning(f'drop_alert sent for group {chat_id}')
 
 def drop_soon_announce(bot, job):
-    chatid = job.context
-    bot.sendMessage(chatid, texts.DROP_SOON)
-    logger.warning(f'Drop announcement sent for group {chatid}')
+    chat_id = job.context
+    bot.sendMessage(chat_id, texts.DROP_SOON)
+    logger.warning(f'Drop announcement sent for group {chat_id}')
 
 def check_instagram(api, lst):
     logger.info('Checking Instagram...')
@@ -354,48 +359,48 @@ def check_instagram(api, lst):
 
 @async1
 def check45(bot, job):
-    logger.warning('45 mins check')
-    chatid = job.context[0]
+    chat_id = job.context[0]
     nicks = job.context[1]
+
+    logger.warning(f'{chat_id}: 45 mins check')
 
     pidorases = check_instagram(api, nicks)
     if not pidorases:
-        logging.info('check45: All users had liked&commented each other')
+        logger.info(f'{chat_id} check45: All users had liked&commented each other')
     else:
-        logging.info(f"These users did not complete the requirements: {pidorases}")
         lst = [x for x in get_bad_users(pidorases)]
         list_to_send = '\n'.join(lst)
-        logger.info(f'These users did not complete the requirements: {lst}')
-        bot.sendMessage(chatid, texts.BAD_CONDITIONS + list_to_send)
+        logger.info(f'{chat_id}: These users did not complete the requirements: {lst}')
+        bot.sendMessage(chat_id, texts.BAD_CONDITIONS + list_to_send)
 
 
 def final_check(bot, job):
-    chatid = job.context[0]
+    chat_id = job.context[0]
     nicks = job.context[1]
     job_queue = job.context[2]
-    logger.warning('Final check')
+    logger.warning(f'{chat_id}: Final check initiated')
 
     pidorases = check_instagram(api, nicks)
     if not pidorases:
-        logging.info('All users have liked&commented each other')
-        #bot.sendMessage(chatid, texts.ROUND_SUCCESS)
+        logger.info(f'{chat_id}: All users have engaged with each other')
+        #bot.sendMessage(chat_id, texts.ROUND_SUCCESS)
     else:
         lst = [x for x in get_bad_users(pidorases)]
         list_to_send = '\n'.join(lst)
-        bot.sendMessage(chatid, texts.BAD_USERS + list_to_send + texts.BAD_BEHAVIOR_INFO)
+        bot.sendMessage(chat_id, texts.BAD_USERS + list_to_send + texts.BAD_BEHAVIOR_INFO)
 
     goods = list(set(nicks) - set(pidorases))
-    check_if_bans_necessary(goods, pidorases, chatid, bot)
+    check_if_bans_necessary(goods, pidorases, chat_id, bot)
     mark_as_pidorases(pidorases)
 
-    end_and_plan_next(bot, [chatid, job_queue])
+    end_and_plan_next(bot, [chat_id, job_queue])
 
-def announce_round_finish(bot, chatid):
-    bot.sendMessage(chatid, texts.ROUND_FINISHED)
-    bot.sendMessage(chatid, f'Next Drop starts in {timedelta(seconds=ROUNDS_INTERVAL) - timedelta(seconds=DROP_WINDOW)}')
+def announce_round_finish(bot, chat_id):
+    bot.sendMessage(chat_id, texts.ROUND_FINISHED)
+    bot.sendMessage(chat_id, f'Next Drop starts in {timedelta(seconds=ROUNDS_INTERVAL) - timedelta(seconds=DROP_WINDOW)}')
 
 
-def check_if_bans_necessary(g, p, chatid, bot):
+def check_if_bans_necessary(g, p, chat_id, bot):
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
     for i in p:
@@ -404,10 +409,10 @@ def check_if_bans_necessary(g, p, chatid, bot):
         data = cursor.fetchone()
         if data:
             print(f'user has reached ban limit:', data[0])
-            if is_admin(bot, data[0], chatid):
-                logger.warning('Cannot restrict admin')
+            if is_admin(bot, data[0], chat_id):
+                logger.warning(f'{chat_id}: Cannot restrict admin')
             else:
-                ban(bot, data[0], chatid)
+                ban(bot, data[0], chat_id)
                 cursor.execute(f'''UPDATE {T_USER['NAME']} SET {T_USER['FIELDS']['BAN_WARNS']}=0 \
                 WHERE {T_USER['FIELDS']['USER_ID']}={data[0]}''')
                 conn.commit()
@@ -426,7 +431,7 @@ def mark_as_pidorases(lst):
 
 
 @async1
-def ban(bot, userid, chatid):
+def ban(bot, userid, chat_id):
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
 
@@ -435,9 +440,9 @@ def ban(bot, userid, chatid):
     user_name = cursor.fetchone()
     conn.close()
 
-    bot.restrict_chat_member(chatid, userid, until_date = (datetime.now() + timedelta(seconds=BAD_USER_BAN_TIME)).timestamp(), can_send_messages = False)
-    logger.warning(f'{userid} id has been restricted from posting for 15 days')
-    bot.sendMessage(chatid, ''.join(user_name) + texts.BANNED)
+    bot.restrict_chat_member(chat_id, userid, until_date = (datetime.now() + timedelta(seconds=BAD_USER_BAN_TIME)).timestamp(), can_send_messages = False)
+    logger.warning(f'{chat_id}: {userid} id has been restricted from posting for 15 days')
+    bot.sendMessage(chat_id, ''.join(user_name) + texts.BANNED)
 
 def get_bad_users(usrs):
     res = list()
@@ -454,7 +459,7 @@ def get_bad_users(usrs):
 
 
 def end_and_plan_next(bot, cont):
-    chatid = cont[0]
+    chat_id = cont[0]
     job_queue = cont[1]
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
@@ -462,72 +467,74 @@ def end_and_plan_next(bot, cont):
 
     cursor.execute(f'''update {T_ROUND['NAME']} \
     set {T_ROUND['FIELDS']['IS_FINISHED']}=True, {T_ROUND['FIELDS']['IN_PROGRESS']}=False where \
-    {T_ROUND['FIELDS']['IS_FINISHED']}=False and {T_ROUND['FIELDS']['STARTS_AT']}={times[chatid]}''')
+    {T_ROUND['FIELDS']['IS_FINISHED']}=False and {T_ROUND['FIELDS']['STARTS_AT']}={times[chat_id]}''')
     conn.commit()
-    logger.info('Round has ended')
+    logger.info(f'{chat_id}: Round has ended')
     jobs = job_queue.jobs()
     for i in jobs:
-        logger.warning(f'Job planned: {i.name}')
+        logger.warning(f'Job planned: {i.name} in group {chat_id}')
 
     next_start_time = (datetime.now() + timedelta(seconds=ROUNDS_INTERVAL)).timestamp()
 
     cursor.execute(f'''UPDATE {T_USER['NAME']} set {T_USER['FIELDS']['INSTA_LINK']} = NULL \
     WHERE id in (select distinct {T_U_R['FIELDS']['USER_ID']} from {T_U_R['NAME']} \
     where {T_U_R['FIELDS']['ROUND_ID']} in (select distinct id from {T_ROUND['NAME']} \
-    where {T_ROUND['FIELDS']['IS_FINISHED']}=True and {T_ROUND['FIELDS']['GROUP_ID']}={chatid}))''')
+    where {T_ROUND['FIELDS']['IS_FINISHED']}=True and {T_ROUND['FIELDS']['GROUP_ID']}={chat_id}))''')
     conn.commit()
 
     query = f'''INSERT INTO {T_ROUND['NAME']} ({T_ROUND['FIELDS']['STARTS_AT']}, \
     {T_ROUND['FIELDS']['GROUP_ID']}) VALUES (%s, %s)'''
-    cursor.execute(query, (next_start_time, chatid))  # creates new round_start
+    cursor.execute(query, (next_start_time, chat_id))  # creates new round_start
     conn.commit()
     conn.close()
 
-    logger.info(f'New round set to {datetime.fromtimestamp(next_start_time)}')
+    logger.info(f'{chat_id}: New round set to {datetime.fromtimestamp(next_start_time)}')
     plan_all_round_jobs(job_queue)
-    announce_round_finish(bot, chatid)
+    announce_round_finish(bot, chat_id)
 
 
 # @async1
 def round_start(bot, job):
-    # job.context[1] = job_queue
-    logger.warning('Round started')
     chat_id = job.context[0]
+    # job.context[1] = job_queue
+    logger.warning(f'{chat_id}: Round started')
     t = times[chat_id]
-    logger.warning(f'Time: {t}')
+    logger.warning(f'{chat_id}: Time: {t}')
     links = get_round_links(t, chat_id)
 
     if links:
         links = [x[0] for x in links]
 
     if not links:
-        logger.warning('No links for this round')
-        bot.sendMessage(job.context[0], texts.NO_USERS_PARTICIPATE)
+        logger.warning(f'{chat_id}: No links for this round')
+        bot.sendMessage(chat_id, texts.NO_USERS_PARTICIPATE)
         end_and_plan_next(bot, job.context)
     elif len(links) == 1:
-        logger.warning('Not enough users for the round')
-        bot.sendMessage(job.context[0], texts.USER_SO_ALONE)
+        logger.warning(f'{chat_id}: Not enough users for the round')
+        bot.sendMessage(chat_id, texts.USER_SO_ALONE)
         end_and_plan_next(bot, job.context)
 
     else:  # plan 45min alert
         nicknames = usernames_from_links(links)
-        logger.info(f'nicknames: {nicknames}, links: {links}')
-        bot.sendMessage(job.context[0], texts.ROUND_STARTED)
+        logger.info(f'{chat_id}: nicknames: {nicknames}, links: {links}')
+        bot.sendMessage(chat_id, texts.ROUND_STARTED)
         links_list = '\n\n'.join(links)
-        logger.info(f'Links for this round ({job.context[0]}): {links_list}')
-        bot.sendMessage(job.context[0], links_list, disable_web_page_preview=True)
-        bot.sendMessage(job.context[0], texts.ROUND_START_RULES)
-        job.context[1].run_once(check45, (ROUND_TIME // 4) * 3, context=[job.context[0], nicknames],
-                                name=f'45min alert for {job.context[0]}')
-        job.context[1].run_once(final_check, ROUND_TIME, context=[job.context[0], nicknames, job.context[1]],
-                                name=f'final checking for {job.context[0]}')
-        logger.info(f'Checkings planned: {job.context[1].jobs()}')
+        logger.info(f'{chat_id}: Links for this round: {links_list}')
+        bot.sendMessage(chat_id, links_list, disable_web_page_preview=True)
+        bot.sendMessage(chat_id, texts.ROUND_START_RULES)
+        job.context[1].run_once(check45, (ROUND_TIME // 4) * 3, context=[chat_id, nicknames],
+                                name=f'45min alert')
+        job.context[1].run_once(final_check, ROUND_TIME, context=[chat_id, nicknames, job.context[1]],
+                                name=f'final checking')
+        logger.info(f'{chat_id}: Checkings planned: {job.context[1].jobs()}')
         jobs = job.context[1].jobs()
         for i in jobs:
-            logger.warning(f'Job planned: {i.name}')
+            logger.warning(f'Job planned: {i.name} in group {chat_id}')
 
 
 def get_round_links(time, chat_id):
+
+    logger.warning(f'{chat_id}: starting collection of links from DB')
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
     cursor.execute(f'''select {T_USER['FIELDS']['INSTA_LINK']} from {T_USER['NAME']} \
@@ -536,6 +543,8 @@ def get_round_links(time, chat_id):
     {T_ROUND['FIELDS']['GROUP_ID']}={chat_id}))''')
     data = cursor.fetchall()
     conn.close()
+    if not data:
+        logger.warning(f'{chat_id}: NO links found in DB for this group and round')
     return data
 
 
@@ -586,17 +595,20 @@ def finish_past_rounds():
 
 @async1
 def help(bot, update):
-    bot.sendMessage(update.message.chat_id, texts.HELP + CHAT_GROUP)
-    logger.info('Help message sent')
+    chat_id = update.message.chat_id
+    bot.sendMessage(chat_id, texts.HELP + CHAT_GROUP)
+    logger.info(f'{chat_id}: Help message sent')
 
 @async1
 def get_next_round_time(bot, update):
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
 
+    chat_id = update.message.chat_id
+
     cursor.execute(f'''select {T_ROUND['FIELDS']['STARTS_AT']} from {T_ROUND['NAME']} \
     where {T_ROUND['FIELDS']['IN_PROGRESS']}=True \
-    and {T_ROUND['FIELDS']['GROUP_ID']}={update.message.chat_id}''')
+    and {T_ROUND['FIELDS']['GROUP_ID']}={chat_id}''')
     data = cursor.fetchone()
     if data:
         t = datetime.fromtimestamp(data[0]) + timedelta(seconds=(ROUND_TIME + ROUNDS_INTERVAL -  DROP_WINDOW)) - datetime.now()
@@ -604,7 +616,7 @@ def get_next_round_time(bot, update):
         dt_now = datetime.now().timestamp() # + timedelta(seconds=ROUND_TIME)).timestamp()
         cursor.execute(f'''select {T_ROUND['FIELDS']['STARTS_AT']} from {T_ROUND['NAME']} \
         where {T_ROUND['FIELDS']['STARTS_AT']} > {dt_now} \
-        and {T_ROUND['FIELDS']['GROUP_ID']}={update.message.chat_id} order by id asc limit 1''')
+        and {T_ROUND['FIELDS']['GROUP_ID']}={chat_id} order by id asc limit 1''')
         data = cursor.fetchone()
         if data:
             #t = datetime.fromtimestamp(data[0]).strftime('%H:%M:%S %Y-%m-%d ')
@@ -613,8 +625,8 @@ def get_next_round_time(bot, update):
             t = 'NEVER'
     conn.close()
     message = texts.NEXT_ROUND + str(t).split(".")[0]
-    bot.sendMessage(update.message.chat_id, message)
-    logger.info(f'Round time sent: {t}')
+    bot.sendMessage(chat_id, message)
+    logger.info(f'{chat_id}: Round time sent: {t}')
 
 def delete_check_message(bot, job):
         bot.delete_message(chat_id=job.context[0], message_id=job.context[1])
@@ -663,37 +675,39 @@ def delete_check_message(bot, job):
 def check_engagement(bot, update, job_queue):
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
+    chat_id = update.message.chat_id
+    user_id = update.message.from_user.id
 
     cursor.execute(f'''SELECT * FROM {T_ROUND['NAME']} \
-    WHERE {T_ROUND['FIELDS']['GROUP_ID']}={update.message.chat_id} \
+    WHERE {T_ROUND['FIELDS']['GROUP_ID']}={chat_id} \
     AND {T_ROUND['FIELDS']['IN_PROGRESS']}=True ORDER BY id ASC LIMIT 1''')
     data = cursor.fetchone()
 
     if data:
 
         cursor.execute(f'''SELECT {T_USER['FIELDS']['INSTA_LINK']} FROM {T_USER['NAME']} \
-        WHERE {T_USER['FIELDS']['USER_ID']}={update.message.from_user.id}''')
+        WHERE {T_USER['FIELDS']['USER_ID']}={user_id}''')
         data = cursor.fetchone()
 
         if data:
 
             insta_handle = handle_from_link(str(data[0]))
 
-            logger.info(f'Received /check command from {insta_handle}')
+            logger.info(f'{chat_id}: Received /check command from {insta_handle}')
             cursor.execute(f'''SELECT {T_USER['FIELDS']['TG_NAME']} FROM {T_USER['NAME']} \
-            WHERE {T_USER['FIELDS']['USER_ID']}={update.message.from_user.id}''')
+            WHERE {T_USER['FIELDS']['USER_ID']}={user_id}''')
             data = cursor.fetchone()[0]
             if data:
                 name = '@' + str(data)
             else:
                 cursor.execute(f'''SELECT {T_USER['FIELDS']['FULL_NAME']} FROM {T_USER['NAME']} \
-                WHERE {T_USER['FIELDS']['USER_ID']}={update.message.from_user.id}''')
+                WHERE {T_USER['FIELDS']['USER_ID']}={user_id}''')
                 name = str(cursor.fetchone()[0])
 
             cursor.execute(f'''SELECT {T_USER['FIELDS']['INSTA_LINK']} FROM {T_USER['NAME']} \
             WHERE id IN (SELECT {T_U_R['FIELDS']['USER_ID']} FROM {T_U_R['NAME']} \
             WHERE {T_U_R['FIELDS']['ROUND_ID']} IN (SELECT id FROM {T_ROUND['NAME']} \
-            WHERE {T_ROUND['FIELDS']['GROUP_ID']}={update.message.chat_id} \
+            WHERE {T_ROUND['FIELDS']['GROUP_ID']}={chat_id} \
             AND {T_ROUND['FIELDS']['IN_PROGRESS']}=True))''')
             data = cursor.fetchall()
             participating_insta_links = []
@@ -701,12 +715,12 @@ def check_engagement(bot, update, job_queue):
             for i in data:
                 for j in i:
                     participating_insta_links.append(str(j))
-            logger.warning(f'PARTICIPATING INSTA LINKS ARE: {participating_insta_links}')
+            logger.warning(f'{chat_id}: PARTICIPATING INSTA LINKS ARE: {participating_insta_links}')
 
 
             handles = usernames_from_links(participating_insta_links)
 
-            logger.info(f'{insta_handle} started manual check')
+            logger.info(f'{chat_id}: manual check started by {insta_handle}')
             output_list = []
             likers_missing = []
             comment_missing = []
@@ -715,7 +729,7 @@ def check_engagement(bot, update, job_queue):
                 if user == insta_handle:
                     continue
                 else:
-                    logger.warning(f'{insta_handle} : {user} insta-check started')
+                    logger.warning(f'{chat_id}: {insta_handle} : {user} insta-check started')
                     api.searchUsername(user)
                     id = str(api.LastJson.get('user', "").get("pk", ""))
                     api.getUserFeed(id)
@@ -738,10 +752,10 @@ def check_engagement(bot, update, job_queue):
                             output_list.append(str(j))
                     sleep(1.75)
 
-            logger.info(f'{insta_handle} LIKES MISSING: {likers_missing}')
-            logger.info(f'{insta_handle} COMMENTS MISSING: {comment_missing}')
+            logger.info(f'{chat_id}: {insta_handle} LIKES MISSING: {likers_missing}')
+            logger.info(f'{chat_id}: {insta_handle} COMMENTS MISSING: {comment_missing}')
 
-            logger.info(f'{insta_handle} CHECK_RESULT: {output_list}')
+            logger.info(f'{chat_id}: {insta_handle} CHECK_RESULT: {output_list}')
 
 
             if output_list:
@@ -753,23 +767,23 @@ def check_engagement(bot, update, job_queue):
                 check_message = name + '\ncheck these users:\n' + list_to_check
 
                 logger_check_list = ' '.join(output_list)
-                logger.info(f'{insta_handle} engagements missing: {logger_check_list}')
+                logger.info(f'{chat_id}: {insta_handle} engagements missing: {logger_check_list}')
 
             else:
                 check_message = name + '\nyou engaged with everyone participating so far, great work!'
 
-            check_response = bot.sendMessage(update.message.chat_id, check_message, reply_to_message_id=update.message.message_id, disable_web_page_preview=True)
+            check_response = bot.sendMessage(chat_id, check_message, reply_to_message_id=update.message.message_id, disable_web_page_preview=True)
 
             time_of_deletion = datetime.now() + timedelta(seconds=150)
-            job_queue.run_once(delete_check_message, time_of_deletion, context=[update.message.chat_id, update.message.message_id, update.message.from_user.id], name='delete check message from user')
-            job_queue.run_once(delete_check_message, time_of_deletion, context=[check_response.chat_id, check_response.message_id], name='delete check response from bot')
+            job_queue.run_once(delete_check_message, time_of_deletion, context=[chat_id, update.message.message_id, user_id], name='delete check message from user')
+            job_queue.run_once(delete_check_message, time_of_deletion, context=[chat_id, check_response.message_id], name='delete check response from bot')
 
         else:
             bot.delete_message(chat_id=update.message.chat_id, message_id=update.message.message_id)
-            logger.info('deleted /check message from non-participating user')
-            bot.sendMessage(update.message.chat_id, 'The /check command is only available for participants of the drop')
+            logger.info(f'{chat_id}: deleted /check message from non-participating user')
+            bot.sendMessage(chat_id, 'The /check command is only available for participants of the drop')
     else:
-        bot.sendMessage(update.message.chat_id, 'The /check command only works when a round is in progress.')
+        bot.sendMessage(chat_id, 'The /check command only works when a round is in progress.')
     conn.close()
 
 # def delete_next_round(update, job_queue):
