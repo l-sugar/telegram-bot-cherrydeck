@@ -740,7 +740,7 @@ def check_engagement(bot, update, job_queue):
                         continue
                     else:
 
-                        @retry(stop=stop_after_attempt(3), wait=(wait_fixed(1) + wait_random(0, 1.5)))
+                        #@retry(stop=stop_after_attempt(3), wait=(wait_fixed(1) + wait_random(0, 1.5)))
                         def get_pic_engagements(user):
                             logger.warning(f'{chat_id}: {insta_handle} : {user} insta-check started')
                             api.searchUsername(user)
