@@ -4,3 +4,4 @@ InstagramAPI==1.0.2
 pyinotify==0.9.6
 psycopg2==2.7.6.1
 requests-toolbelt==0.8.0
+tenacity==5.0.2
