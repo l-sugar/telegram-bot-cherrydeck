@@ -735,36 +735,37 @@ def check_engagement(bot, update, job_queue):
                 likers_missing = []
                 comment_missing = []
 
+                @retry(stop=stop_after_attempt(3), wait=(wait_fixed(1) + wait_random(0, 1.5)))
+                def get_pic_engagements(user):
+                    logger.warning(f'{chat_id}: {insta_handle} : {user} insta-check started')
+                    api.searchUsername(user)
+                    id = str(api.LastJson.get('user', "").get("pk", ""))
+                    api.getUserFeed(id)
+                    post_id = str(api.LastJson.get('items', "")[0].get("pk", ""))
+                    api.getMediaLikers(post_id)
+                    likers_handles = []
+                    for i in api.LastJson['users']:
+                        likers_handles.append(str(i.get('username', "")))
+                    if insta_handle not in likers_handles:
+                        likers_missing.append(user)
+                    else:
+                        user_comments = getComments(api, post_id)
+                        if insta_handle not in user_comments:
+                            comment_missing.append(user)
+                    for i in likers_missing:
+                        if i not in output_list:
+                            output_list.append(str(i))
+                    for j in comment_missing:
+                        if j not in output_list:
+                            output_list.append(str(j))
+                    sleep(1.75)
+
                 for user in handles:
                     if user == insta_handle:
                         continue
                     else:
+                        get_pic_engagements(user)
 
-                        #@retry(stop=stop_after_attempt(3), wait=(wait_fixed(1) + wait_random(0, 1.5)))
-                        #def get_pic_engagements(user):
-                        logger.warning(f'{chat_id}: {insta_handle} : {user} insta-check started')
-                        api.searchUsername(user)
-                        id = str(api.LastJson.get('user', "").get("pk", ""))
-                        api.getUserFeed(id)
-                        post_id = str(api.LastJson.get('items', "")[0].get("pk", ""))
-                        api.getMediaLikers(post_id)
-                        likers_handles = []
-                        for i in api.LastJson['users']:
-                            likers_handles.append(str(i.get('username', "")))
-                        if insta_handle not in likers_handles:
-                            likers_missing.append(user)
-                        else:
-                            user_comments = getComments(api, post_id)
-                            if insta_handle not in user_comments:
-                                comment_missing.append(user)
-                        for i in likers_missing:
-                            if i not in output_list:
-                                output_list.append(str(i))
-                        for j in comment_missing:
-                            if j not in output_list:
-                                output_list.append(str(j))
-
-                        sleep(1.75)
 
                 logger.info(f'{chat_id}: {insta_handle} LIKES MISSING: {likers_missing}')
                 logger.info(f'{chat_id}: {insta_handle} COMMENTS MISSING: {comment_missing}')
