@@ -677,7 +677,7 @@ def delete_check_message(bot, job):
 
 
 
-
+@async1
 def check_engagement(bot, update, job_queue):
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
