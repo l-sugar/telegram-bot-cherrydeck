@@ -11,6 +11,10 @@ CHAT_GROUP = os.getenv('TG_CHAT_GROUP')
 # INSTA_CREDENTIALS
 INSTA_USERNAME = os.getenv('INSTA_USER')
 INSTA_PASSWORD = os.getenv('INSTA_PW')
+INSTA_USERNAME2 = os.getenv('INSTA_USER2')
+INSTA_PASSWORD2 = os.getenv('INSTA_PW2')
+INSTA_USERNAME3 = os.getenv('INSTA_USER3')
+INSTA_PASSWORD3 = os.getenv('INSTA_PW3')
 
 # TIMES
 # ROUNDS_INTERVAL = 23 * 60 * 60  # interval between rounds, seconds
@@ -18,6 +22,7 @@ INSTA_PASSWORD = os.getenv('INSTA_PW')
 # ROUND_TIME = 1 * 60 * 60  # round_start time, seconds
 # DROP_ANNOUNCE = 1 * 60 * 60 # drop_announcement time, seconds
 # DROP_ENDS_SOON = DROP_WINDOW * 5 // 6 # drop_alert time
+# CHECK_INTERVAL = 3 * 60 # check interval, seconds
 
 # TESTING TIMES
 ROUNDS_INTERVAL = 1 * 3 * 60  # interval between rounds, seconds TESTING
@@ -25,6 +30,7 @@ DROP_WINDOW = 1 * 60  # drop window before each round_start, seconds TESTING
 ROUND_TIME = 1 * 0.5 * 60  # round_start time, seconds TESTING
 DROP_ANNOUNCE = 1 * 60 # drop_announcement time, seconds TESTING
 DROP_ENDS_SOON = DROP_WINDOW * 4 // 5 # drop_alert time TESTING
+CHECK_INTERVAL = 20 # check interval in seconds TESTING
 
 BAD_USER_BAN_TIME = 15 * 24 * 60 * 60 # user ban time after bad behavior
 # BAD_USER_BAN_TIME = 1 * 60 * 60 # user ban time after bad behavior TESTING

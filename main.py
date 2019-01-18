@@ -12,6 +12,7 @@ from time import sleep
 from InstagramAPI import InstagramAPI
 from telegram.ext import CommandHandler, MessageHandler, Updater, Filters
 
+import random
 import texts
 from config import *
 
@@ -742,7 +743,9 @@ def check_engagement(bot, update, job_queue):
                 @retry(stop=stop_after_attempt(3), wait=(wait_fixed(1) + wait_random(0, 1.5)))
                 def get_pic_engagements(user):
                     try:
-                        logger.warning(f'{chat_id}: {insta_handle} : {user} insta-check started')
+                        global insta_accounts
+                        api = random.choice(insta_accounts)
+                        logger.warning(f'{chat_id}: {insta_handle} : {user} insta-check started with {api}')
                         api.searchUsername(user)
                         id = str(api.LastJson.get('user', "").get("pk", ""))
                         api.getUserFeed(id)
@@ -877,6 +880,15 @@ if __name__ == '__main__':
     sleep(1)
     api.login()
     sleep(1)
+    api2 = InstagramAPI(INSTA_USERNAME2, INSTA_PASSWORD2)
+    sleep(1)
+    api2.login()
+    sleep(1)
+    api3 = InstagramAPI(INSTA_USERNAME3, INSTA_PASSWORD3)
+    sleep(1)
+    api3.login()
+    sleep(1)
+    insta_accounts = [api, api2, api3]
     logger.info('Instagram account(s): ready')
 
     # TODO если надо будет обновлять конфиг в лайве
