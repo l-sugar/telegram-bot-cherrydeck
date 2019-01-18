@@ -745,7 +745,8 @@ def check_engagement(bot, update, job_queue):
                     try:
                         global insta_accounts
                         api = random.choice(insta_accounts)
-                        logger.warning(f'{chat_id}: {insta_handle} : {user} insta-check started with {api}')
+                        index = insta_accounts.index(api)
+                        logger.warning(f'{chat_id}: {insta_handle} : {user} insta-check started with {index}')
                         api.searchUsername(user)
                         id = str(api.LastJson.get('user', "").get("pk", ""))
                         api.getUserFeed(id)
