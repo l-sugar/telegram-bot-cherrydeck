@@ -880,16 +880,12 @@ if __name__ == '__main__':
     sleep(1)
     api.login()
     sleep(1)
-    api2 = InstagramAPI(INSTA_USERNAME2, INSTA_PASSWORD2)
-    sleep(1)
-    api2.login()
-    sleep(1)
     api3 = InstagramAPI(INSTA_USERNAME3, INSTA_PASSWORD3)
     sleep(1)
     api3.login()
     sleep(1)
-    insta_accounts = [api, api2, api3]
-    logger.info('Instagram account(s): ready')
+    insta_accounts = [api, api3]
+    logger.info(f'Instagram account(s): ready')
 
     # TODO если надо будет обновлять конфиг в лайве
     # wm = pyinotify.WatchManager()
