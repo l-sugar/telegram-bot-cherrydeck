@@ -99,3 +99,9 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# ignored files
+test_get_comments_output1802.txt
+test_get_comments.py
+*.dump
+*.sql
