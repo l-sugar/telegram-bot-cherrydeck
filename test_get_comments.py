@@ -3,8 +3,9 @@
 from InstagramAPI import InstagramAPI
 import logging
 
-API = InstagramAPI('louis.sugar', 'fireflyer')
-API.login()
+api = InstagramAPI('ovleng4', 'qwe228rty')
+
+api.login()
 
 # def get_pic_engagements(user):
 #     try:
@@ -22,28 +23,35 @@ API.login()
 #
 # get_pic_engagements('cherrydeck')
 
-# def getComments(api, post_id):
-#     next_max_id = True
-#     while next_max_id:
-#         try:
-#             if next_max_id is True:
-#                 next_max_id = ''
-#             _ = api.getMediaComments(post_id, max_id=next_max_id)
-#             for i in api.LastJson['comments']:
-#                 try:
-#                     commentator = i.get('user', "").get('username', "")
-#                     print(commentator)
-#                 except Exception as e:
-#                     logger.warning('error while getting username from comment')
-#                     logger.exception(e)
-#                     raise
-#             next_max_id = api.LastJson.get('next_max_id', '')
-#         except Exception as e:
-#             logger.warning('error while getting comments')
-#             logger.exception(e)
-#             raise
-#
-# getComments(api, '1959726671447903328')
+def getComments(api, post_id):
+
+    accounts_to_test = ['nikolasgogstad', 'jan_niklas_kowalk', 'stefan_p_photography', 'alfonso_bricegno', 'highluxphoto', 'oliverkielstrup', 'imjoanamaria', 'dominika_scheibinger', 'rettekraudmets', 'jmstudio.dk', 'odouglas50', 'ricawenzel', 'danielanunesf', 'cherrydeck', 'andybattportfolio', 'with_feathers', 'basso2012', 'afonsomolinar', 'jack_and_kie', 'didierbarontini', 'Alexander_dhiet', 'hdc101' ]
+    comments = []
+    next_max_id = True
+    while next_max_id:
+        try:
+            if next_max_id is True:
+                next_max_id = ''
+            _ = api.getMediaComments(post_id, max_id=next_max_id)
+            for i in api.LastJson['comments']:
+                try:
+                    commentator = i.get('user', "").get('username', "")
+                    comments.append(commentator)
+                except Exception as e:
+                    logging.warning('error while getting username from comment')
+                    logging.exception(e)
+                    raise
+            next_max_id = api.LastJson.get('next_max_id', '')
+        except Exception as e:
+            logging.warning('error while getting comments')
+            logging.exception(e)
+            raise
+    for user in accounts_to_test:
+        if user not in comments:
+            print(user)
+
+
+getComments(api, '1961846907498044758')
 
 # def getTotalFollowers(api, user_id):
 #     """
@@ -66,23 +74,23 @@ API.login()
 # getTotalFollowers(api, '17950676368225416')
 
 # from InstagramAPI import InstagramAPI
-import time
-from datetime import datetime
-
-user_id = '17950676368225416'
-
-
-API.getUsernameInfo(user_id)
-API.LastJson
-following = []
-next_max_id = True
-while next_max_id:
-    # first iteration hack
-    if next_max_id is True:
-        next_max_id = ''
-    _ = API.getUserFollowings(user_id, maxid=next_max_id)
-    following.extend(API.LastJson.get('users', []))
-    next_max_id = API.LastJson.get('next_max_id', '')
-
-for user in following:
-    print(user)
+# import time
+# from datetime import datetime
+#
+# user_id = '17950676368225416'
+#
+#
+# API.getUsernameInfo(user_id)
+# API.LastJson
+# following = []
+# next_max_id = True
+# while next_max_id:
+#     # first iteration hack
+#     if next_max_id is True:
+#         next_max_id = ''
+#     _ = API.getUserFollowings(user_id, maxid=next_max_id)
+#     following.extend(API.LastJson.get('users', []))
+#     next_max_id = API.LastJson.get('next_max_id', '')
+#
+# for user in following:
+#     print(user)

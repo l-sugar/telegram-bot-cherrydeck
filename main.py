@@ -12,7 +12,6 @@ from time import sleep
 from InstagramAPI import InstagramAPI
 from telegram.ext import CommandHandler, MessageHandler, Updater, Filters
 
-import random
 import texts
 from config import *
 
@@ -23,7 +22,7 @@ from config import *
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-sleep_time = 0.25
+sleep_time = 3
 insta_user_pattern = re.compile('^([hH]ttp)?s?(://)?([wW]ww.)?[iI]nstagram.com/[^/][^p/].*?/?$')
 
 times = {}  # {group_tg_id: closest round_start start timestamp}
@@ -191,9 +190,10 @@ def getComments(api, post_id):
     return comments
 
 
-def gather(api, userList):
-    global_mas = []
-    # global_mas = [global_mas[tmp[likers][user_comments]]]
+@retry(stop=stop_after_attempt(3), wait=(wait_fixed(1) + wait_random(0, 1.5)))
+def gather(api, userList): # userList == [name1, name2, name3, ...]
+    engagements = []
+    # engagements = [engagements[tmp[likers][user_comments]]]
     # access spec liker: global_mas[0][0][0]
     likers = []
     try:
@@ -210,26 +210,39 @@ def gather(api, userList):
                 user_comments = getComments(api, post_id)
                 tmp.append(likers)
                 tmp.append(user_comments)
-                global_mas.append(tmp)
+                engagements.append(tmp)
                 sleep(1.75)
             except Exception as e:
                 logger.exception(e)
 
-        return global_mas
+        return engagements
 
     except Exception as e:
         logger.exception(e)
-        return None
+        raise
 
 
-def check(res, users):
+def check(res, users): # users == [name1, name2, name3, ...]
     approved = []
+    missing_engagements = {}
     try:
         for _, i in enumerate(users):
+            likes_missing = []
+            comments_missing = []
+            tmp = []
             if all(i in res[x][0] for x in range(len(res)) if x != _) and all(
                     i in res[x][1] for x in range(len(res)) if x != _):
                 approved.append(i)
-        return approved
+            else:
+                for j in res:
+                    if (i not in res[j][0]):
+                        likes_missing.append(res[j][0][users.index(user)])
+                    if (i not in res[j][1]):
+                        comments_missing.append(res[j][1][users.index(user)])
+                tmp.append(likes_missing)
+                tmp.append(comments_missing)
+                missing_engagements[user] = tmp
+        return approved, missing_engagements
 
     except Exception as e:
         logger.exception(e)
@@ -357,10 +370,10 @@ def drop_soon_announce(bot, job):
 def check_instagram(api, lst):
     logger.info('Checking Instagram...')
     result = gather(api, lst)
-    approved = check(result, lst)
+    approved, missing_engagements = check(result, lst)
     res = list(set(lst) - set(approved))
     logger.info(res)
-    return res
+    return res, missing_engagements
 
 
 @async1
@@ -370,7 +383,7 @@ def check45(bot, job):
 
     logger.warning(f'{chat_id}: 45 mins check')
 
-    pidorases = check_instagram(api, nicks)
+    pidorases, missing_engagements = check_instagram(api, nicks)
     if not pidorases:
         logger.info(f'{chat_id} check45: All users had liked&commented each other')
     else:
@@ -378,6 +391,10 @@ def check45(bot, job):
         list_to_send = '\n'.join(lst)
         logger.info(f'{chat_id}: These users did not complete the requirements: {lst}')
         bot.sendMessage(chat_id, texts.BAD_CONDITIONS + list_to_send)
+        for insta_handle in missing_engagements:
+            missing_likes = missing_engagements.get(insta_handle, "")[0]
+            missing_comments = missing_engagements.get(insta_handle, "")[1]
+            logger.warning(f'{chat_id} 45min check: {insta_handle}\nlikes missing: {missing_likes}\ncomments missing: {missing_comments}')
 
 
 def final_check(bot, job):
@@ -386,7 +403,7 @@ def final_check(bot, job):
     job_queue = job.context[2]
     logger.warning(f'{chat_id}: Final check initiated')
 
-    pidorases = check_instagram(api, nicks)
+    pidorases, missing_engagements = check_instagram(api, nicks)
     if not pidorases:
         logger.info(f'{chat_id}: All users have engaged with each other')
         #bot.sendMessage(chat_id, texts.ROUND_SUCCESS)
@@ -394,6 +411,10 @@ def final_check(bot, job):
         lst = [x for x in get_bad_users(pidorases)]
         list_to_send = '\n'.join(lst)
         bot.sendMessage(chat_id, texts.BAD_USERS + list_to_send + texts.BAD_BEHAVIOR_INFO)
+        for insta_handle in missing_engagements:
+            missing_likes = missing_engagements.get(insta_handle, "")[0]
+            missing_comments = missing_engagements.get(insta_handle, "")[1]
+            logger.warning(f'{chat_id} 45min check: {insta_handle}\nlikes missing: {missing_likes}\ncomments missing: {missing_comments}')
 
     goods = list(set(nicks) - set(pidorases))
     check_if_bans_necessary(goods, pidorases, chat_id, bot)
