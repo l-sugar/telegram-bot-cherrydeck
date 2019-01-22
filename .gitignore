@@ -103,5 +103,6 @@ ENV/
 # ignored files
 test_get_comments_output1802.txt
 test_get_comments.py
+test.py
 *.dump
 *.sql

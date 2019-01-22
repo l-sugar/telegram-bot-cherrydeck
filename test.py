@@ -19,4 +19,4 @@ api.getMediaLikers(post_id)
 # for i in api.LastJson["users"]:
 #     post_likers.append(i.get("username"))
 #print(json.dumps(api.LastJson, indent=4, sort_keys=True))
-print(json.dumps(api.LastJson.get("username", "")[3], indent=3, sort_keys=True))
+print(json.dumps(api.LastJson.get("username", "")[], indent=3, sort_keys=True))
