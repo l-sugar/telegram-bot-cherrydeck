@@ -1,11 +1,11 @@
-# from InstagramAPI import *
-# from logging import *
-# import json
-# from time import sleep
+from InstagramAPI import *
+from logging import *
+import json
+from time import sleep
 #
 #
-# api = InstagramAPI('ovleng4', 'qwe228rty')
-# api.login()
+api = InstagramAPI('ovleng4', 'qwe228rty')
+api.login()
 #
 # post_likers = []
 # max_id=""
@@ -20,3 +20,5 @@
 # #     post_likers.append(i.get("username"))
 # #print(json.dumps(api.LastJson, indent=4, sort_keys=True))
 # print(json.dumps(api.LastJson.get("username", "")[], indent=3, sort_keys=True))
+api.searchUsername('felsenwald')
+print(json.dumps(api.LastJson, indent=4, sort_keys=True))

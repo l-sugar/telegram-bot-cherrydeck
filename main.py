@@ -234,11 +234,11 @@ def check(res, users): # users == [name1, name2, name3, ...]
                     i in res[x][1] for x in range(len(res)) if x != _):
                 approved.append(i)
             else:
-                for j in res:
-                    if (i not in res[j][0]):
-                        likes_missing.append(res[j][0][users.index(user)])
-                    if (i not in res[j][1]):
-                        comments_missing.append(res[j][1][users.index(user)])
+                for it, j in enumerate(res):
+                    if (i not in res[it][0]):
+                        likes_missing.append(res[it][0][users.index(user)])
+                    if (i not in res[it][1]):
+                        comments_missing.append(res[it][1][users.index(user)])
                 tmp.append(likes_missing)
                 tmp.append(comments_missing)
                 missing_engagements[user] = tmp
