@@ -241,7 +241,7 @@ def check(res, users): # users == [name1, name2, name3, ...]
                         comments_missing.append(res[it][1][users.index(i)])
                 tmp.append(likes_missing)
                 tmp.append(comments_missing)
-                missing_engagements[user] = tmp
+                missing_engagements[i] = tmp
         return approved, missing_engagements
 
     except Exception as e:
@@ -414,7 +414,7 @@ def final_check(bot, job):
         for insta_handle in missing_engagements:
             missing_likes = missing_engagements.get(insta_handle, "")[0]
             missing_comments = missing_engagements.get(insta_handle, "")[1]
-            logger.warning(f'{chat_id} 45min check: {insta_handle}\nlikes missing: {missing_likes}\ncomments missing: {missing_comments}')
+            logger.warning(f'{chat_id} final check: {insta_handle}\nlikes missing: {missing_likes}\ncomments missing: {missing_comments}')
 
     goods = list(set(nicks) - set(pidorases))
     check_if_bans_necessary(goods, pidorases, chat_id, bot)
