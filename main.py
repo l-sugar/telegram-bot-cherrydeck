@@ -164,7 +164,7 @@ def add_to_times(chat_id):
         return data
     return None
 
-@retry(stop=stop_after_attempt(3), wait=(wait_fixed(1) + wait_random(0, 1.5)))
+@retry(stop=stop_after_attempt(5), wait=(wait_fixed(5) + wait_random(0, 1.5)))
 def getComments(api, post_id):
     next_max_id = True
     comments = []
@@ -190,7 +190,7 @@ def getComments(api, post_id):
     return comments
 
 
-@retry(stop=stop_after_attempt(3), wait=(wait_fixed(1) + wait_random(0, 1.5)))
+@retry(stop=stop_after_attempt(5), wait=(wait_fixed(5) + wait_random(0, 1.5)))
 def gather(api, userList): # userList == [name1, name2, name3, ...]
     engagements = []
     # engagements = [engagements[tmp[likers][user_comments]]]
@@ -214,6 +214,7 @@ def gather(api, userList): # userList == [name1, name2, name3, ...]
                 sleep(1.75)
             except Exception as e:
                 logger.exception(e)
+                raise
 
         return engagements
 
@@ -369,7 +370,8 @@ def drop_soon_announce(bot, job):
     bot.sendMessage(chat_id, texts.DROP_SOON)
     logger.warning(f'Drop announcement sent for group {chat_id}')
 
-def check_instagram(api, lst):
+def check_instagram(lst):
+    api = next(apis)
     logger.info('Checking Instagram...')
     result = gather(api, lst)
     approved, missing_engagements = check(result, lst)
@@ -385,7 +387,7 @@ def check45(bot, job):
 
     logger.warning(f'{chat_id}: 45 mins check')
 
-    pidorases, missing_engagements = check_instagram(api, nicks)
+    pidorases, missing_engagements = check_instagram(nicks)
     if not pidorases:
         logger.info(f'{chat_id} check45: All users had liked&commented each other')
     else:
@@ -405,7 +407,7 @@ def final_check(bot, job):
     job_queue = job.context[2]
     logger.warning(f'{chat_id}: Final check initiated')
 
-    pidorases, missing_engagements = check_instagram(api, nicks)
+    pidorases, missing_engagements = check_instagram(nicks)
     if not pidorases:
         logger.info(f'{chat_id}: All users have engaged with each other')
         #bot.sendMessage(chat_id, texts.ROUND_SUCCESS)
@@ -700,7 +702,7 @@ def delete_check_message(bot, job):
 
 
 
-
+@async1
 def check_engagement(bot, update, job_queue):
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
@@ -765,6 +767,7 @@ def check_engagement(bot, update, job_queue):
 
                 @retry(stop=stop_after_attempt(5), wait=(wait_fixed(10) + wait_random(5, 10)))
                 def get_pic_engagements(user):
+                    api = next(apis)
                     try:
                         logger.warning(f'{chat_id}: {insta_handle} : {user} insta-check started')
                         api.searchUsername(user)
@@ -897,11 +900,20 @@ def setup():
 
 
 if __name__ == '__main__':
-    api = InstagramAPI(INSTA_USERNAME, INSTA_PASSWORD)
+    api1 = InstagramAPI(INSTA_USERNAME, INSTA_PASSWORD)
+    api2 = InstagramAPI(INSTA_USERNAME2, INSTA_PASSWORD2)
+    api3 = InstagramAPI(INSTA_USERNAME3, INSTA_PASSWORD3)
     sleep(1)
-    api.login()
+    api1.login()
     sleep(1)
+    api2.login()
+    sleep(1)
+    api3.login()
+    sleep(1)
+    apis = cycle([api1, api2, api3])
+
     logger.info(f'Instagram account(s): ready')
+
 
     # TODO если надо будет обновлять конфиг в лайве
     # wm = pyinotify.WatchManager()
