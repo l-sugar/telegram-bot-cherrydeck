@@ -4,6 +4,7 @@ import re
 import psycopg2
 import psycopg2.extras
 from tenacity import *
+from itertools import cycle
 
 from datetime import datetime, timedelta
 from threading import Thread
